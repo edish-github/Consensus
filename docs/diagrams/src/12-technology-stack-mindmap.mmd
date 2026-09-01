@@ -1,0 +1,64 @@
+---
+title: Technology Stack
+---
+mindmap
+  root((Consensus))
+    Standard
+      WebMCP
+        document.modelContext
+        registerTool imperative API
+        readOnlyHint annotations
+        untrustedContentHint annotations
+        Permissions-Policy tools self
+      W3C Web Machine Learning CG
+      Tested in ChatGPT built-in browser
+      Tested in Chrome 146 flag
+    Frontend
+      Next.js 15 App Router
+      TypeScript strict
+      Tailwind CSS v4
+      Motion for FLIP reordering
+      No iframes anywhere
+    State
+      Zustand with immer
+      Vanilla store access for tool execute
+      Five slices
+        matrix
+        vault
+        disclosure
+        proposals
+        activity
+      Derived selectors
+        selectRanking
+        selectPhase
+        selectGaps
+    Local data plane
+      pdf.js in a Web Worker
+      Page and sub-chunk model
+      MiniSearch BM25
+      storeFields excludes text
+      No embeddings by design
+      No OCR out of scope
+    Security
+      Disclosure gate state machine
+      One release call site only
+      Append-only ledger
+      CSP connect-src self
+      No backend exists
+      1200 char snippet cap
+      Delimited untrusted content
+    Engineering discipline
+      Zod mirrors of every JSON Schema
+      Structured error envelope with hints
+      Epoch controller for registration
+      StrictMode-safe refcounting
+      Shingle fuzz security test
+      Description budget lint
+      Twelve-prompt agent eval protocol
+      Generated tool table cannot drift
+    Deployment
+      Vercel
+      HTTPS by default
+      Preview URLs for agent testing
+      Portable to Cloudflare Workers
+      Zero server-side logic

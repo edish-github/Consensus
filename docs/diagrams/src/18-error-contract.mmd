@@ -1,0 +1,42 @@
+---
+title: Error Contract — agent experience is a design surface
+---
+flowchart LR
+
+  CALL["Agent calls a tool"] --> WRAP
+
+  subgraph WRAP["wrapExecute — cross-cutting concerns in one place"]
+    V["Zod validation against the mirrored schema"]
+    LOG["activity log: tool, args, duration, result code"]
+    TRY["try / catch — a throw becomes a value,<br/>never a rejected promise"]
+    V --> TRY --> LOG
+  end
+
+  WRAP --> RES{"outcome"}
+
+  RES -->|ok| OK["{ ok: true, data }"]
+  RES -->|error| ERR["{ ok: false, code, message, hint, retryable }"]
+
+  subgraph CODES["Every code carries an actionable hint"]
+    E1["VALIDATION_FAILED<br/>→ names the offending field"]
+    E2["NOT_FOUND<br/>→ 'call get_decision_state for valid ids'"]
+    E3["PERMISSION_REQUIRED · retryable<br/>→ 'tell the user what you are waiting for'"]
+    E4["PERMISSION_DENIED · not retryable<br/>→ 'do not re-request. Say what you<br/>cannot verify and continue.'"]
+    E5["BOUNDARY_VIOLATION<br/>→ 'use request_disclosure first'"]
+    E6["INDEX_NOT_READY<br/>→ 'call list_documents to check status'"]
+    E7["RATE_LIMITED<br/>→ 'wait for the user before requesting more'"]
+    E8["INTERNAL<br/>→ generic, never echoes content"]
+  end
+
+  ERR --> CODES
+
+  NOTE["The hint on PERMISSION_DENIED is<br/>behavioural steering, not decoration.<br/>Without it, agents retry or invent."]
+  E4 --- NOTE
+
+  classDef ok fill:#e0f5e6,stroke:#40a060,color:#000
+  classDef err fill:#fff2d9,stroke:#c08820,color:#000
+  classDef note fill:#dce8ff,stroke:#4070c0,color:#000
+
+  class OK ok
+  class ERR,E1,E2,E3,E4,E5,E6,E7,E8 err
+  class NOTE note

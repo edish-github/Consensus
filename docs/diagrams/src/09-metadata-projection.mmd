@@ -1,0 +1,49 @@
+---
+title: Metadata Projection — the security-critical 20 lines
+---
+flowchart TB
+
+  Q["locate_evidence({query: 'SOC2 availability exception'})"] --> MS
+
+  subgraph MS["MiniSearch — sub-chunk granularity"]
+    H1["hit: doc d_7fK2 · p14 · sub-chunk c_91 · score 0.94"]
+    H2["hit: doc d_7fK2 · p14 · sub-chunk c_92 · score 0.88"]
+    H3["hit: doc d_7fK2 · p14 · sub-chunk c_97 · score 0.71"]
+    H4["hit: doc d_7fK2 · p9 · sub-chunk c_63 · score 0.62"]
+  end
+
+  MS --> P
+
+  subgraph P["projectToMetadata — SECURITY CRITICAL"]
+    S1["group hits by documentId:page"]
+    S2["matchCount = distinct sub-chunks that matched"]
+    S3["relevance = max score, normalised"]
+    S4["look up sealState per page"]
+    S5["<b>construct a NEW object.<br/>Never spread the hit.<br/>NO TEXT FIELD.</b>"]
+    S1 --> S2 --> S3 --> S4 --> S5
+  end
+
+  P --> OUT
+
+  subgraph OUT["What the agent receives"]
+    O1["{ documentId, filename, page: 14,<br/>matchCount: 3, relevance: 0.91,<br/>sealState: 'sealed' }"]
+    O2["note: 'Text withheld. Use request_disclosure<br/>to ask the user to release a page.'"]
+  end
+
+  subgraph DEF["TWO INDEPENDENT BARRIERS"]
+    D1["Barrier 1 — the index itself<br/>storeFields excludes text,<br/>so a careless spread cannot leak"]
+    D2["Barrier 2 — this projection<br/>constructs output explicitly"]
+    D3["Test — 200 fuzz queries × every<br/>20-char shingle of the corpus.<br/>Zero matches in the output."]
+  end
+
+  P -.-> DEF
+
+  classDef plaintext fill:#ffe0e0,stroke:#c04040,color:#000
+  classDef gate fill:#dce8ff,stroke:#4070c0,stroke-width:2px,color:#000
+  classDef out fill:#e0f5e6,stroke:#40a060,color:#000
+  classDef test fill:#fff2d9,stroke:#c08820,color:#000
+
+  class H1,H2,H3,H4 plaintext
+  class S1,S2,S3,S4,S5 gate
+  class O1,O2 out
+  class D1,D2,D3 test

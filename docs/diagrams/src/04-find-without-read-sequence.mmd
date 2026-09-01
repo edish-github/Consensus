@@ -1,0 +1,46 @@
+---
+title: Find Without Read — the primitive no other transport can express
+---
+sequenceDiagram
+  autonumber
+  actor H as Human
+  participant A as Agent
+  participant T as WebMCP tools
+  participant P as Metadata projection
+  participant G as Disclosure gate
+  participant D as Local chunks (plaintext)
+
+  H->>A: "Score the vendors on SOC 2 coverage"
+  A->>T: locate_evidence({query:"SOC2 availability exception"})
+  T->>P: query BM25 index
+  P->>D: read sub-chunk hits
+  D-->>P: hits with text
+  Note over P: STRIPS EVERY CHARACTER<br/>collapses to page granularity
+  P-->>T: doc · page · matchCount · relevance
+  T-->>A: 3 matches · vendor-b-soc2.pdf p.14 · NO TEXT<br/>note: "use request_disclosure to ask the user"
+
+  Note over A: The agent now knows WHERE the answer is<br/>and has read zero characters of it.
+
+  A->>T: request_disclosure({doc, page:14, reason:"verify availability exception"})
+  T->>G: create pending request
+  G-->>H: approval card: file · page · agent's reason
+  T-->>A: {status:"pending"} — returns immediately, does not block
+
+  A->>T: read_snippet({requestId})
+  T->>G: check seal
+  G-->>T: still REQUESTED
+  T-->>A: PERMISSION_REQUIRED<br/>hint: "tell the user what you are waiting for"
+
+  H->>G: APPROVE page 14
+  G->>G: seal → RELEASED · write LedgerEntry
+
+  A->>T: read_snippet({requestId})
+  T->>G: check seal → RELEASED
+  G->>D: fetch page 14
+  D-->>T: text
+  Note over T: cap 1200 chars · wrap in delimiters<br/>hash · untrustedContentHint
+  T-->>A: released text
+
+  A->>T: propose_score({value:2, rationale, evidenceRefs:[p.14]})
+  T-->>H: proposal card with provenance chip
+  H->>H: accept — the score is written by the human, not the agent

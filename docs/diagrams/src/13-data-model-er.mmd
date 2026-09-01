@@ -1,0 +1,88 @@
+---
+title: Data Model
+---
+erDiagram
+  OPTION ||--o{ SCORE : "is scored on"
+  CRITERION ||--o{ SCORE : "scores"
+  OPTION ||--o{ VAULT_DOCUMENT : "is evidenced by"
+  VAULT_DOCUMENT ||--o{ PAGE_CHUNK : "contains"
+  PAGE_CHUNK ||--o{ SUB_CHUNK : "splits into"
+  PAGE_CHUNK ||--o| DISCLOSURE_REQUEST : "is gated by"
+  DISCLOSURE_REQUEST ||--|| LEDGER_ENTRY : "always writes"
+  SCORE ||--o{ EVIDENCE_REF : "cites"
+  SUB_CHUNK ||--o{ EVIDENCE_REF : "is referenced by"
+  OPTION ||--o{ CHALLENGE : "is disputed on"
+  CRITERION ||--o{ CHALLENGE : "is disputed on"
+  PROPOSAL ||--o| SCORE : "becomes when accepted"
+
+  OPTION {
+    string id PK
+    string name
+    string note
+    string createdBy "always human"
+  }
+  CRITERION {
+    string id PK
+    string name
+    int weight "1-5 HUMAN ONLY"
+    string createdBy "human or agent-proposed-human-accepted"
+  }
+  SCORE {
+    string optionId FK
+    string criterionId FK
+    int value "1-5"
+    string rationale
+    string source "human or agent-proposed-human-accepted"
+    int updatedAt
+  }
+  VAULT_DOCUMENT {
+    string id PK
+    string filename
+    int pageCount
+    string optionId FK
+    string status "queued parsing ready failed"
+  }
+  PAGE_CHUNK {
+    string id PK
+    string documentId FK
+    int page
+    string text "PLAINTEXT never serialised to a tool"
+  }
+  SUB_CHUNK {
+    string id PK
+    string text "600 chars 80 overlap"
+    int offset
+  }
+  DISCLOSURE_REQUEST {
+    string id PK
+    string documentId FK
+    int page
+    string reason "agent supplied shown to human"
+    string state "sealed requested released denied"
+    int reRequestCount "capped at 1"
+  }
+  LEDGER_ENTRY {
+    string id PK
+    string decision "approved or denied"
+    int decidedAt
+    int charactersReleased
+    string textHash "sha256 for provenance"
+  }
+  EVIDENCE_REF {
+    string documentId FK
+    int page
+    string subChunkId FK
+    string textHash
+  }
+  CHALLENGE {
+    string id PK
+    int disputedValue "the human score being challenged"
+    string argument
+    string state "open accepted dismissed"
+  }
+  PROPOSAL {
+    string id PK
+    string kind "criterion or score"
+    int value
+    string rationale
+  }

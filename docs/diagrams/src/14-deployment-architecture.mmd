@@ -1,0 +1,38 @@
+---
+title: Deployment — there is no backend, and that is the point
+---
+flowchart TB
+
+  DEV["git push"] --> BUILD["Vercel build · next build<br/>static + client bundle"]
+  BUILD --> CDN["Vercel Edge CDN<br/>HTTPS automatic · secure context required by the spec"]
+  CDN --> URL["https://consensus.vercel.app"]
+
+  URL --> ENV1["ChatGPT desktop built-in browser<br/>GPT-5.6 Sol / Terra<br/>site tools discovered automatically"]
+  URL --> ENV2["Chrome 146+<br/>chrome://flags/#enable-webmcp-testing"]
+  URL --> ENV3["Any browser, no agent<br/>the product still works as a human tool"]
+
+  subgraph HEADERS["Response headers — verifiable by a judge in ten seconds"]
+    H1["Content-Security-Policy<br/><b>connect-src 'self'</b><br/>the page is structurally incapable of<br/>sending document content anywhere"]
+    H2["Permissions-Policy: tools=(self)"]
+    H3["frame-ancestors 'none'<br/>X-Content-Type-Options: nosniff<br/>Referrer-Policy: no-referrer"]
+  end
+
+  CDN --- HEADERS
+
+  subgraph ABSENT["Deliberately absent"]
+    N1["No application server"]
+    N2["No database"]
+    N3["No authentication"]
+    N4["No file upload endpoint"]
+    N5["No telemetry on document content"]
+  end
+
+  URL -.->|"nothing to migrate"| PORT["Portable to Cloudflare Workers,<br/>Netlify or Render as a config change.<br/>Zero server-side logic to move."]
+
+  classDef ok fill:#e0f5e6,stroke:#40a060,color:#000
+  classDef sec fill:#dce8ff,stroke:#4070c0,stroke-width:2px,color:#000
+  classDef absent fill:#f0f0f0,stroke:#999,stroke-dasharray:4 4,color:#000
+
+  class DEV,BUILD,CDN,URL,ENV1,ENV2,ENV3 ok
+  class H1,H2,H3 sec
+  class N1,N2,N3,N4,N5,PORT absent

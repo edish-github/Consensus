@@ -1,0 +1,52 @@
+---
+title: Judging Criteria — every claim backed by a nameable artifact
+---
+flowchart LR
+
+  subgraph C1["WebMCP Leverage"]
+    A1["10 tools across 3 capability classes"]
+    A2["Phase-based dynamic registration<br/>with tested reverse transitions"]
+    A3["readOnlyHint and untrustedContentHint<br/>applied correctly, not decoratively"]
+    A4["The deliberately-absent-tools list"]
+    A5["security.spec.ts passing"]
+  end
+
+  subgraph C2["Execution"]
+    B1["Deployed, works human-only too"]
+    B2["Decision brief export"]
+    B3["Empty and error states everywhere"]
+    B4["Clean clone builds"]
+    B5["Generated tool docs that cannot drift"]
+  end
+
+  subgraph C3["Potential Impact"]
+    D1["Named beachhead user"]
+    D2["A constraint that currently forces a choice<br/>between your documents and your AI"]
+    D3["Demonstrated on realistic documents"]
+  end
+
+  subgraph C4["Creativity and Ambition"]
+    E1["find-without-read: a new primitive"]
+    E2["Asymmetric capability: a new interaction shape"]
+    E3["A climax built on persuasion, not execution"]
+  end
+
+  subgraph C5["Human-agent experience — OpenAI's stated tiebreaker"]
+    F1["Capability boundary enforced in code"]
+    F2["Per-page approval that protects something real"]
+    F3["Proposal queue — nothing auto-applies"]
+    F4["Visible ledger of everything released"]
+    F5["An agent that cannot commit anything"]
+  end
+
+  classDef c1 fill:#e0f5e6,stroke:#40a060,color:#000
+  classDef c2 fill:#fff2d9,stroke:#c08820,color:#000
+  classDef c3 fill:#dce8ff,stroke:#4070c0,color:#000
+  classDef c4 fill:#ffe0e0,stroke:#c04040,color:#000
+  classDef c5 fill:#ece0ff,stroke:#8050c0,stroke-width:2px,color:#000
+
+  class A1,A2,A3,A4,A5 c1
+  class B1,B2,B3,B4,B5 c2
+  class D1,D2,D3 c3
+  class E1,E2,E3 c4
+  class F1,F2,F3,F4,F5 c5

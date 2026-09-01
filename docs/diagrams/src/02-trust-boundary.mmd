@@ -1,0 +1,47 @@
+---
+title: What Leaves The Browser
+---
+flowchart LR
+
+  subgraph INSIDE["INSIDE THE TAB — never transmitted"]
+    B1["PDF bytes"]
+    B2["Full extracted page text"]
+    B3["BM25 search index"]
+    B4["Sub-chunk contents"]
+  end
+
+  subgraph FREE["CROSSES FREELY — metadata only, no gate"]
+    F1["Filenames · page counts"]
+    F2["Match locations · counts · relevance"]
+    F3["Matrix scores · weights · ranking"]
+    F4["Which cells lack evidence"]
+  end
+
+  subgraph GATED["CROSSES ONLY AFTER HUMAN RELEASE"]
+    G1["One page of one document<br/>capped at 1200 characters<br/>delimited · hashed · logged"]
+  end
+
+  subgraph NEVER["NO SERVER EXISTS"]
+    N1["There is no Consensus backend.<br/>connect-src 'self' in the CSP.<br/>Verifiable from response headers."]
+  end
+
+  HUMAN(["Human"]) -->|"drops files"| INSIDE
+  INSIDE -->|"metadata projection<br/>strips all text"| FREE
+  INSIDE -->|"per-page approval"| GATE{{"THE GATE<br/>human is the only actor<br/>who can release"}}
+  GATE --> GATED
+  FREE --> AGENT(["Agent context"])
+  GATED --> AGENT
+
+  INSIDE -.->|"no code path"| NEVER
+
+  classDef plaintext fill:#ffe0e0,stroke:#c04040,stroke-width:2px,color:#000
+  classDef free fill:#e0f5e6,stroke:#40a060,color:#000
+  classDef gated fill:#fff2d9,stroke:#c08820,stroke-width:2px,color:#000
+  classDef gate fill:#dce8ff,stroke:#4070c0,stroke-width:3px,color:#000
+  classDef never fill:#f0f0f0,stroke:#999,stroke-dasharray:4 4,color:#000
+
+  class B1,B2,B3,B4 plaintext
+  class F1,F2,F3,F4 free
+  class G1 gated
+  class GATE gate
+  class N1 never

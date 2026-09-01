@@ -1,0 +1,42 @@
+---
+title: Tool Surface — 10 tools, 3 classes, disjoint verbs
+---
+flowchart LR
+
+  MC(["document.modelContext"])
+
+  subgraph A["CLASS A — read-only · readOnlyHint: true · no friction"]
+    A1["get_decision_state<br/>options · criteria · weights · scores<br/>ranking · gaps<br/><i>no document text</i>"]
+    A2["list_documents<br/>filenames · page counts<br/>option scoping · parse status<br/><i>no document text</i>"]
+    A3["locate_evidence ★<br/>query → doc · page · matchCount · relevance<br/><i>ZERO characters of source text</i><br/>note field teaches the protocol"]
+    A4["explain_ranking<br/>per-criterion contributions<br/>flipAnalysis: smallest weight change<br/>that inverts the top two"]
+  end
+
+  subgraph B["CLASS B — gated · requires human release"]
+    B1["request_disclosure<br/>doc · page · reason<br/>non-blocking · rate-limited at 12 pending"]
+    B2["read_snippet<br/>untrustedContentHint: true<br/>≤1200 chars · delimited · hashed<br/>3 returns: text / REQUIRED / DENIED"]
+  end
+
+  subgraph C["CLASS C — proposal and annotation · never commits a value"]
+    C1["propose_criterion<br/>creates a card only"]
+    C2["propose_score<br/>value · rationale · evidenceRefs<br/>creates a card only"]
+    C3["attach_evidence<br/>cite an already-released page<br/>BOUNDARY_VIOLATION if sealed"]
+    C4["flag_inconsistency ★<br/>argue against a human score<br/>evidenceRefs + unreadRefs<br/><i>I have not read these. May I?</i>"]
+  end
+
+  MC --> A
+  MC --> B
+  MC --> C
+
+  A3 -.->|"agent learns where"| B1
+  B1 -.->|"human approves"| B2
+  B2 -.->|"now it can cite"| C3
+  B2 -.->|"now it can argue"| C4
+
+  classDef read fill:#e0f5e6,stroke:#40a060,color:#000
+  classDef gated fill:#dce8ff,stroke:#4070c0,stroke-width:2px,color:#000
+  classDef prop fill:#fff2d9,stroke:#c08820,color:#000
+
+  class A1,A2,A3,A4 read
+  class B1,B2 gated
+  class C1,C2,C3,C4 prop

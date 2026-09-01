@@ -1,0 +1,48 @@
+{
+  "theme": "base",
+  "themeVariables": {
+    "fontFamily": "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
+    "fontSize": "14px",
+    "primaryColor": "#ece0ff",
+    "primaryTextColor": "#111111",
+    "primaryBorderColor": "#8050c0",
+    "lineColor": "#555555",
+    "secondaryColor": "#e0f5e6",
+    "tertiaryColor": "#fff2d9",
+    "background": "#ffffff",
+    "mainBkg": "#f7f7f9",
+    "clusterBkg": "#fbfbfd",
+    "clusterBorder": "#cccccc",
+    "titleColor": "#111111",
+    "edgeLabelBackground": "#ffffff",
+    "noteBkgColor": "#fff8dc",
+    "noteBorderColor": "#c08820",
+    "actorBkg": "#ece0ff",
+    "actorBorder": "#8050c0",
+    "actorTextColor": "#111111",
+    "signalColor": "#333333",
+    "signalTextColor": "#111111",
+    "labelBoxBkgColor": "#dce8ff",
+    "labelBoxBorderColor": "#4070c0",
+    "sequenceNumberColor": "#ffffff"
+  },
+  "flowchart": {
+    "curve": "basis",
+    "htmlLabels": true,
+    "nodeSpacing": 45,
+    "rankSpacing": 55,
+    "padding": 14
+  },
+  "sequence": {
+    "showSequenceNumbers": true,
+    "actorMargin": 60,
+    "boxMargin": 12,
+    "mirrorActors": false,
+    "wrap": true,
+    "width": 175
+  },
+  "er": { "layoutDirection": "TB", "entityPadding": 14, "minEntityWidth": 130 },
+  "gantt": { "barHeight": 22, "barGap": 5, "topPadding": 55, "leftPadding": 190, "fontSize": 12 },
+  "mindmap": { "padding": 14 },
+  "maxTextSize": 120000
+}

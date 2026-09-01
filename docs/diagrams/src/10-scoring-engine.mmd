@@ -1,0 +1,35 @@
+---
+title: Scoring Engine — simple enough to be trusted, inspectable on camera
+---
+flowchart LR
+
+  subgraph IN["Inputs"]
+    SC["scores: option × criterion → 1..5<br/>source: human | agent-proposed-human-accepted"]
+    WT["weights: criterion → 1..5<br/><b>human-only. No tool can set these.</b>"]
+  end
+
+  IN --> CALC
+
+  subgraph CALC["Computation — under one frame, 16ms"]
+    F1["weightedTotal = Σ score(o,c) × weight(c)"]
+    F2["normalised = weightedTotal / (5 × Σ weight(c))<br/>unscored cells excluded from BOTH<br/>numerator and denominator"]
+    F3["completeness = scored cells / total cells<br/>a partial leader is visibly provisional"]
+    F4["tie-break: completeness, then alphabetical<br/>deterministic, so the animation never jitters"]
+    F5["flipAnalysis: smallest single weight change<br/>that inverts the top two"]
+  end
+
+  CALC --> OUT
+
+  subgraph OUT["Outputs"]
+    R1["Ranking board<br/>animated reorder · 400ms spring · FLIP via layout prop"]
+    R2["explain_ranking tool<br/>per-criterion contributions + flipAnalysis"]
+    R3["gaps array in get_decision_state<br/>unscored cells + scores lacking evidence<br/>this is what steers the agent's next move"]
+  end
+
+  classDef human fill:#ece0ff,stroke:#8050c0,stroke-width:2px,color:#000
+  classDef calc fill:#f0f0f0,stroke:#999,color:#000
+  classDef out fill:#e0f5e6,stroke:#40a060,color:#000
+
+  class SC,WT human
+  class F1,F2,F3,F4,F5 calc
+  class R1,R2,R3 out

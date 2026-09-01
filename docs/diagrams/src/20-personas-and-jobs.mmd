@@ -1,0 +1,40 @@
+---
+title: Who This Is For
+---
+flowchart LR
+
+  subgraph BEACH["BEACHHEAD — the person we built for"]
+    B["Security lead / eng manager / founder<br/>at a 50–500 person company.<br/>Handed a vendor decision and a folder of PDFs.<br/>Three vendors. Four documents each. Thursday."]
+    B1["Has the confidential-document constraint in full force"]
+    B2["Has no procurement tooling to displace"]
+    B3["Decides alone or in a small group"]
+    B4["Felt the pain recently and acutely"]
+    B --> B1 & B2 & B3 & B4
+  end
+
+  subgraph ADJ["ADJACENT — same architecture, zero code changes"]
+    A1["Hiring panels<br/>candidates × rubric, using work samples"]
+    A2["Consultants and architects<br/>formal trade studies"]
+    A3["Grant and RFP committees<br/>scoring sealed submissions"]
+    A4["M&A diligence<br/>data-room exports"]
+    A5["Individuals<br/>care facility · school · insurance"]
+  end
+
+  subgraph NOT["EXPLICITLY NOT FOR"]
+    N1["Casual or low-stakes choices.<br/>If the decision does not justify<br/>assembling documents,<br/>the product is overhead.<br/><i>We say so in the pitch.</i>"]
+  end
+
+  PAIN["THE SHARED CONSTRAINT<br/>The work is exactly what an agent should do,<br/>and exactly what people refuse to let an agent do.<br/>Consensus removes the choice."]
+
+  BEACH --> PAIN
+  ADJ --> PAIN
+
+  classDef beach fill:#ece0ff,stroke:#8050c0,stroke-width:2px,color:#000
+  classDef adj fill:#e0f5e6,stroke:#40a060,color:#000
+  classDef not fill:#f0f0f0,stroke:#999,stroke-dasharray:4 4,color:#000
+  classDef pain fill:#ffe0e0,stroke:#c04040,stroke-width:2px,color:#000
+
+  class B,B1,B2,B3,B4 beach
+  class A1,A2,A3,A4,A5 adj
+  class N1 not
+  class PAIN pain

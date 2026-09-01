@@ -1,0 +1,66 @@
+---
+title: Consensus — System Architecture
+---
+flowchart TB
+
+  HUMAN(["<b>HUMAN</b><br/>owns every value"]):::human
+  FILES["<b>Confidential PDFs</b><br/>NDAs · SOC 2 · DPAs · pricing sheets"]:::plaintext
+
+  subgraph TAB["THE TAB — https://consensus.vercel.app · no backend exists"]
+    direction TB
+
+    subgraph DATA["① LOCAL DATA PLANE · plaintext lives here and nowhere else"]
+      direction LR
+      WORKER["PDF Web Worker<br/>pdf.js · off main thread"]:::plaintext
+      CHUNKS[("Page + sub-chunks<br/>never serialised to a tool")]:::plaintext
+      INDEX[("MiniSearch BM25<br/>storeFields excludes text")]:::plaintext
+      WORKER --> CHUNKS --> INDEX
+    end
+
+    subgraph GATE["② THE GATE · the security kernel — the only path to plaintext"]
+      direction LR
+      PROJ["<b>Metadata projection</b><br/>strips every character<br/>before anything reaches the agent"]:::gate
+      SEAL["<b>Page seal machine</b><br/>sealed → requested<br/>→ released / denied"]:::gate
+      QUEUE["<b>Approval queue + ledger</b><br/>the human is the only actor<br/>who can release a page"]:::gate
+    end
+
+    subgraph SURFACE["③ WEBMCP SURFACE · document.modelContext · top-level document, never an iframe"]
+      direction LR
+      TOOLS["<b>10 tools · 3 classes</b><br/>A read-only · B gated · C proposal<br/>see diagram 06"]:::agent
+      REG["<b>Registration</b><br/>epoch controller · refcounted<br/>phase 0→3 from store state"]:::agent
+    end
+
+    subgraph CORE["④ CORE + UI · the co-authored artifact"]
+      direction LR
+      STORE["Zustand store<br/>matrix · vault · disclosure<br/>proposals · activity"]:::core
+      RANK["Scoring engine<br/>weighted sum · flip analysis"]:::core
+      UI["Matrix · ranking board<br/>challenge cards · tool panel"]:::human
+      STORE --> RANK --> UI
+    end
+  end
+
+  AGENT(["<b>AGENT</b><br/>ChatGPT built-in browser<br/>GPT-5.6 Sol / Terra"]):::agent
+
+  HUMAN ==>|"drops files · File API<br/>zero upload code paths exist"| FILES
+  FILES ==> WORKER
+  INDEX ==> PROJ
+  CHUNKS ==> SEAL
+
+  PROJ ==>|"doc · page · matchCount · relevance<br/><b>NO TEXT</b>"| TOOLS
+  SEAL ==>|"released pages only · ≤1200 chars<br/>delimited · hashed · untrustedContentHint"| TOOLS
+  QUEUE -.->|"approval card"| UI
+
+  TOOLS <==>|"tool calls"| AGENT
+  TOOLS ==>|"proposals · challenges · never a committed value"| STORE
+  STORE ==>|"phase transitions add and remove tools"| REG
+  REG -.-> TOOLS
+
+  UI ==>|"weights · scores · page releases"| HUMAN
+  HUMAN ==>|"the only actor who can commit a value"| STORE
+  HUMAN ==>|"approve / deny each page"| QUEUE
+
+  classDef plaintext fill:#ffe0e0,stroke:#c04040,stroke-width:2px,color:#000
+  classDef gate fill:#dce8ff,stroke:#4070c0,stroke-width:2px,color:#000
+  classDef human fill:#ece0ff,stroke:#8050c0,stroke-width:2px,color:#000
+  classDef agent fill:#e0f5e6,stroke:#40a060,stroke-width:2px,color:#000
+  classDef core fill:#fff2d9,stroke:#c08820,color:#000

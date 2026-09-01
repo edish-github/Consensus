@@ -1,0 +1,34 @@
+---
+title: Ingestion — plaintext never leaves the worker boundary
+---
+flowchart TB
+
+  DROP["Human drops PDFs<br/>File API drop target"] --> BUF["ArrayBuffer<br/>main thread"]
+  BUF -->|"postMessage"| W
+
+  subgraph W["PDF WEB WORKER — off the main thread so the UI stays smooth on camera"]
+    PDF["pdf.js getDocument"]
+    PAGE["per page: getTextContent"]
+    NORM["normalise<br/>whitespace · ligatures · hyphenation repair"]
+    CHUNK["chunk<br/>page chunks — the DISCLOSURE unit<br/>600-char sub-chunks, 80 overlap — the RETRIEVAL unit"]
+    PDF --> PAGE --> NORM --> CHUNK
+  end
+
+  CHUNK -->|"postMessage: progress per page"| PROG["Progress bar<br/>visible during the demo"]
+  CHUNK --> STORE[("vaultSlice<br/>chunks in memory")]
+  STORE --> IDX["MiniSearch.addAll<br/>storeFields: documentId, page, subChunkId<br/><b>text is deliberately excluded</b>"]
+  IDX --> READY["document.status = ready<br/>→ phase 0 transitions to phase 1"]
+
+  BUF -.->|"released after parse<br/>shrinks the plaintext surface"| GC["discarded"]
+
+  EMPTY{{"page has no text layer?"}}
+  NORM --> EMPTY
+  EMPTY -->|"yes"| FLAG["flagged as 'no extractable text'<br/>reported by list_documents<br/>so the agent does not search there<br/>OCR is explicitly out of scope"]
+
+  classDef plaintext fill:#ffe0e0,stroke:#c04040,stroke-width:2px,color:#000
+  classDef infra fill:#f0f0f0,stroke:#999,color:#000
+  classDef ok fill:#e0f5e6,stroke:#40a060,color:#000
+
+  class DROP,BUF,PDF,PAGE,NORM,CHUNK,STORE,IDX plaintext
+  class PROG,GC,EMPTY,FLAG infra
+  class READY ok

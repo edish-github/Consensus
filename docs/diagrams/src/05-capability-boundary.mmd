@@ -1,0 +1,55 @@
+---
+title: Capability Boundary — the agent owns evidence, the human owns values
+---
+flowchart TB
+
+  subgraph AGENTCAN["THE AGENT CAN — 10 registered tools"]
+    direction TB
+    R1["get_decision_state · read"]
+    R2["list_documents · read"]
+    R3["locate_evidence · read<br/>metadata only"]
+    R4["explain_ranking · read"]
+    B1["request_disclosure · ask"]
+    B2["read_snippet · gated read"]
+    C1["propose_criterion · suggest"]
+    C2["propose_score · suggest"]
+    C3["attach_evidence · cite"]
+    C4["flag_inconsistency · argue"]
+  end
+
+  subgraph AGENTCANNOT["THE AGENT CANNOT — these tools are never registered"]
+    direction TB
+    X1["set_score"]
+    X2["set_weight"]
+    X3["add_option"]
+    X4["delete_option"]
+    X5["finalize_decision"]
+    X6["read_document<br/>bulk read of anything"]
+  end
+
+  subgraph HUMANONLY["THE HUMAN ALONE — enforced in code, not in a prompt"]
+    direction TB
+    H1["Set every score"]
+    H2["Set every weight"]
+    H3["Add and remove options"]
+    H4["Release or deny each page"]
+    H5["Accept or reject each proposal"]
+    H6["Make the decision"]
+  end
+
+  AGENTCAN -->|"proposes"| QUEUE["Proposal queue<br/>nothing auto-applies"]
+  QUEUE -->|"human accepts"| HUMANONLY
+  AGENTCANNOT -.->|"no code path exists<br/>asserted by a passing test"| HUMANONLY
+
+  NOTE["evals/security.spec.ts:<br/>expect(registeredToolNames).not.toContain('set_score')<br/>The thesis is a build-breaking assertion."]
+  AGENTCANNOT --- NOTE
+
+  classDef can fill:#e0f5e6,stroke:#40a060,color:#000
+  classDef cannot fill:#ffe0e0,stroke:#c04040,stroke-dasharray:5 3,color:#000
+  classDef human fill:#ece0ff,stroke:#8050c0,stroke-width:2px,color:#000
+  classDef note fill:#fff2d9,stroke:#c08820,color:#000
+
+  class R1,R2,R3,R4,B1,B2,C1,C2,C3,C4 can
+  class X1,X2,X3,X4,X5,X6 cannot
+  class H1,H2,H3,H4,H5,H6,QUEUE human
+  class NOTE note

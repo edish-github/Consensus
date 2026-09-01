@@ -1,0 +1,41 @@
+---
+title: Disclosure Gate — Page Seal State Machine
+---
+stateDiagram-v2
+  direction LR
+
+  [*] --> SEALED : page indexed on document drop
+
+  SEALED --> REQUESTED : agent calls request_disclosure<br/>with a stated reason
+  REQUESTED --> RELEASED : HUMAN approves in the queue
+  REQUESTED --> DENIED : HUMAN denies
+  DENIED --> REQUESTED : one re-request permitted
+  DENIED --> BLOCKED : second attempt refused for the session
+  RELEASED --> SEALED : page reload · session end
+
+  note right of SEALED
+    read_snippet → PERMISSION_REQUIRED
+    attach_evidence → BOUNDARY_VIOLATION
+    locate_evidence → still works
+    the agent can see it exists
+  end note
+
+  note right of RELEASED
+    read_snippet returns text
+    capped 1200 chars · delimited
+    untrustedContentHint set
+    LedgerEntry written
+  end note
+
+  note right of DENIED
+    read_snippet → PERMISSION_DENIED
+    hint: do not re-request
+    LedgerEntry written for the denial too
+  end note
+
+  note left of REQUESTED
+    THE ONLY TRANSITION TO RELEASED
+    is called from one place in the codebase:
+    the approval card click handler.
+    No tool execute can reach it.
+  end note

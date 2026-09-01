@@ -1,0 +1,48 @@
+---
+title: Dynamic Tool Registration — the surface changes with page state
+---
+stateDiagram-v2
+  direction TB
+
+  [*] --> PHASE0
+
+  PHASE0 : PHASE 0 — empty workspace · 3 tools
+  PHASE0 : get_decision_state
+  PHASE0 : list_documents
+  PHASE0 : propose_criterion
+
+  PHASE1 : PHASE 1 — documents indexed · 6 tools
+  PHASE1 : + locate_evidence
+  PHASE1 : + request_disclosure
+  PHASE1 : + read_snippet
+
+  PHASE2 : PHASE 2 — matrix has shape · 9 tools
+  PHASE2 : + propose_score
+  PHASE2 : + attach_evidence
+  PHASE2 : + explain_ranking
+
+  PHASE3 : PHASE 3 — human has scored · 10 tools
+  PHASE3 : + flag_inconsistency
+
+  PHASE0 --> PHASE1 : ≥1 document status = ready
+  PHASE1 --> PHASE2 : ≥1 option AND ≥1 criterion
+  PHASE2 --> PHASE3 : ≥1 score with source = human
+
+  PHASE3 --> PHASE2 : last human score removed
+  PHASE2 --> PHASE1 : matrix emptied
+  PHASE1 --> PHASE0 : all documents removed
+
+  note right of PHASE3
+    Reverse transitions are tested.
+    Remove the documents and
+    locate_evidence unregisters.
+    No ghost tools survive.
+  end note
+
+  note left of PHASE0
+    Epoch controller:
+    refcounted registry keyed by name
+    AbortController per registration
+    StrictMode double-mount produces
+    exactly one registration per tool
+  end note
