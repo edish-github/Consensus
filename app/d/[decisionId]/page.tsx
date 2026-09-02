@@ -10,6 +10,7 @@ import { DisclosureQueue } from '@/components/gate/DisclosureQueue';
 import { DisclosureLedger } from '@/components/gate/DisclosureLedger';
 import { SealIndicator } from '@/components/gate/SealIndicator';
 import { ProposalQueue } from '@/components/proposals/ProposalQueue';
+import { ExportBrief } from '@/components/export/ExportBrief';
 import { useConsensusStore } from '@/lib/store';
 import { selectCapabilities, type Capabilities } from '@/lib/store/selectors';
 
@@ -64,6 +65,7 @@ export default function WorkspacePage() {
             <EvidenceVault />
             <SealIndicator onClick={() => setLedgerOpen((v) => !v)} />
             {ledgerOpen && <DisclosureLedger />}
+            <ExportBrief />
             <CapabilityCard capabilities={capabilities} />
           </div>
         </div>
