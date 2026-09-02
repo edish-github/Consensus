@@ -13,16 +13,55 @@ import type { ToolPhase } from '@/lib/webmcp/types';
  * is told.
  */
 
+let lastRankingArgs: [unknown, unknown, unknown] | null = null;
+let cachedRanking: RankedOption[] = [];
+
 export function selectRanking(s: ConsensusStore): RankedOption[] {
-  return computeRanking(s.options, s.criteria, s.scores);
+  if (
+    lastRankingArgs &&
+    lastRankingArgs[0] === s.options &&
+    lastRankingArgs[1] === s.criteria &&
+    lastRankingArgs[2] === s.scores
+  ) {
+    return cachedRanking;
+  }
+  cachedRanking = computeRanking(s.options, s.criteria, s.scores);
+  lastRankingArgs = [s.options, s.criteria, s.scores];
+  return cachedRanking;
 }
+
+let lastGapsArgs: [unknown, unknown, unknown] | null = null;
+let cachedGaps: Gaps | null = null;
 
 export function selectGaps(s: ConsensusStore): Gaps {
-  return computeGaps(s.options, s.criteria, s.scores);
+  if (
+    lastGapsArgs &&
+    lastGapsArgs[0] === s.options &&
+    lastGapsArgs[1] === s.criteria &&
+    lastGapsArgs[2] === s.scores
+  ) {
+    return cachedGaps!;
+  }
+  cachedGaps = computeGaps(s.options, s.criteria, s.scores);
+  lastGapsArgs = [s.options, s.criteria, s.scores];
+  return cachedGaps;
 }
 
-export function selectFlip(s: ConsensusStore) {
-  return analyseFlip(s.options, s.criteria, s.scores);
+let lastFlipArgs: [unknown, unknown, unknown] | null = null;
+let cachedFlip: ReturnType<typeof analyseFlip> | null = null;
+
+export function selectFlip(s: ConsensusStore): ReturnType<typeof analyseFlip> {
+  if (
+    lastFlipArgs &&
+    lastFlipArgs[0] === s.options &&
+    lastFlipArgs[1] === s.criteria &&
+    lastFlipArgs[2] === s.scores
+  ) {
+    return cachedFlip!;
+  }
+  cachedFlip = analyseFlip(s.options, s.criteria, s.scores);
+  lastFlipArgs = [s.options, s.criteria, s.scores];
+  return cachedFlip;
 }
 
 /**
