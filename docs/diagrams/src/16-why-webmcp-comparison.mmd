@@ -6,7 +6,7 @@ flowchart TB
   GOAL["THE CORE REQUIREMENT<br/>An agent that can tell you WHERE the answer is in a document it is not permitted to read"]
 
   GOAL --> TRAD["Why Alternatives Fail to Enforce the Boundary"]
-  GOAL --> T5["★ Browser-Native WebMCP (Consensus)"]
+  GOAL --> T5["Browser-Native WebMCP (Consensus)"]
 
   subgraph TRAD["Why Alternatives Fail to Enforce the Boundary"]
     direction TB
@@ -28,7 +28,7 @@ flowchart TB
     end
   end
 
-  subgraph T5["★ Browser-Native WebMCP"]
+  subgraph T5["Browser-Native WebMCP"]
     E1["execute() runs INSIDE the user's tab holding the plaintext."]
     E2["Local BM25 index returns 0 text; Selective Gate releases snippets."]
     E3["<b>Search and disclosure are separate capabilities. Real human-in-the-loop control.</b>"]

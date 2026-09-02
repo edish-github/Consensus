@@ -3,39 +3,39 @@ title: What Leaves The Browser
 ---
 flowchart TB
 
-  HUMAN(["👤 Human User"]) -->|"drops confidential PDFs"| INSIDE
+  HUMAN(["Human"]) -->|"drops files"| INSIDE
 
-  subgraph INSIDE["🔒 INSIDE THE TAB (Never Transmitted · Zero Network Egress)"]
+  subgraph INSIDE["INSIDE THE TAB — never transmitted"]
     direction LR
-    B1["PDF Bytes"]
-    B2["Full Extracted Text"]
-    B3["In-Memory BM25 Index"]
-    B4["Sub-Chunk Plaintext"]
+    B1["PDF bytes"]
+    B2["Full extracted page text"]
+    B3["BM25 search index"]
+    B4["Sub-chunk contents"]
   end
 
-  subgraph NEVER["🚫 NO BACKEND SERVER"]
-    N1["There is no Consensus backend.<br/>Enforced by CSP: connect-src 'self' (0 third-party egress)"]
+  subgraph NEVER["NO SERVER EXISTS"]
+    N1["There is no Consensus backend.<br/>connect-src 'self' in the CSP.<br/>Verifiable from response headers."]
   end
 
   INSIDE -.->|"no code path"| NEVER
 
-  INSIDE -->|"metadata projection (strips all text)"| FREE
-  INSIDE -->|"per-page approval"| GATE{{"THE SELECTIVE GATE<br/>Human is the only actor who can release"}}
+  INSIDE -->|"metadata projection<br/>strips all text"| FREE
+  INSIDE -->|"per-page approval"| GATE{{"THE GATE<br/>human is the only actor<br/>who can release"}}
 
-  subgraph FREE["🟢 CROSSES FREELY (Metadata Only · Zero Source Text)"]
+  subgraph FREE["CROSSES FREELY — metadata only, no gate"]
     direction LR
-    F1["Filenames · Page counts"]
-    F2["Match locations · Relevance"]
-    F3["Matrix scores · Ranking"]
-    F4["Unevidenced cell gaps"]
+    F1["Filenames · page counts"]
+    F2["Match locations · counts · relevance"]
+    F3["Matrix scores · weights · ranking"]
+    F4["Which cells lack evidence"]
   end
 
-  subgraph GATED["🟡 CROSSES ONLY AFTER HUMAN RELEASE"]
-    G1["One page of one document (capped at 1200 chars)<br/>Delimited as data · SHA-256 hashed · Audit logged"]
+  subgraph GATED["CROSSES ONLY AFTER HUMAN RELEASE"]
+    G1["One page of one document<br/>capped at 1200 characters<br/>delimited · hashed · logged"]
   end
 
   GATE --> GATED
-  FREE --> AGENT(["🤖 ChatGPT Agent Context"])
+  FREE --> AGENT(["Agent context"])
   GATED --> AGENT
 
   classDef plaintext fill:#ffe0e0,stroke:#c04040,stroke-width:2px,color:#000
