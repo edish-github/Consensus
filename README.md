@@ -7,6 +7,8 @@ PDFs in — they are parsed in your browser and never uploaded. Your ChatGPT
 agent can search them and tell you *where* the answers are, but it cannot read
 a single page without your explicit release.
 
+> **Don't take our word for it.** Open the app, open DevTools → Network, drop one of your own confidential PDFs in, and watch the request count stay at zero.
+
 **[▶ Live demo](https://consensus-henna.vercel.app/d/demo)** ·
 **[▶ 3-minute video](VIDEO_URL)** ·
 **MIT licensed** · Built for the [WebMCP Challenge](https://webmcp.devpost.com)

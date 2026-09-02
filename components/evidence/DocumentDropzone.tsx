@@ -62,6 +62,9 @@ export function DocumentDropzone() {
         <p className="mt-1 text-[11px] leading-relaxed text-neutral-500">
           Parsed in your browser. Never uploaded.
         </p>
+        <p className="mt-1 text-[10px] text-neutral-400">
+          Try it with your own confidential PDF. Open DevTools → Network first. Nothing will be sent.
+        </p>
         <input
           ref={inputRef}
           type="file"
