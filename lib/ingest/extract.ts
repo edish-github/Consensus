@@ -49,7 +49,13 @@ async function loadPdfjs() {
   if (!pdfjsPromise) {
     pdfjsPromise = import('pdfjs-dist').then((lib) => {
       // Served same-origin from /public so the CSP can stay at worker-src 'self'.
-      lib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
+      if (typeof window !== 'undefined') {
+        try {
+          lib.GlobalWorkerOptions.workerSrc = new URL('/pdf.worker.min.mjs', window.location.href).href;
+        } catch {
+          lib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
+        }
+      }
       return lib;
     });
   }
@@ -72,6 +78,9 @@ export async function extractDocument(
     disableFontFace: false,
   });
 
+  // Attach immediate catch handler to prevent browser unhandledRejection events
+  task.promise.catch(() => {});
+
   const pdf = await task.promise;
   const pageCount = pdf.numPages;
   const chunks: PageChunk[] = [];
@@ -89,7 +98,11 @@ export async function extractDocument(
         .join(' ');
 
       const text = normalise(raw);
-      page.cleanup();
+      try {
+        page.cleanup();
+      } catch {
+        // ignore
+      }
 
       if (isEmptyPage(text)) {
         emptyPages += 1;
@@ -101,11 +114,16 @@ export async function extractDocument(
       await yieldToMain();
     }
   } finally {
-    // Release pdf.js internals promptly. destroy() lives on the loading task in
-    // pdfjs-dist v6, not the document proxy. The ArrayBuffer goes out of scope
-    // with this function, which is when the raw bytes stop existing.
-    await pdf.cleanup();
-    await task.destroy();
+    try {
+      await pdf.cleanup();
+    } catch {
+      // ignore
+    }
+    try {
+      await task.destroy();
+    } catch {
+      // ignore
+    }
   }
 
   return { pageCount, chunks, emptyPages };
