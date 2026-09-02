@@ -26,17 +26,17 @@ export function DisclosureQueue() {
 
   // A permission request the human never sees is a permission request that
   // silently fails. The agent has stopped and is waiting; make that visible
-  // wherever they happen to be scrolled.
+  // wherever the page happens to be scrolled.
   useEffect(() => {
     if (count > 0) {
-      ref.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      ref.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   }, [count]);
 
   if (count === 0) return null;
 
   return (
-    <section ref={ref} className="sticky top-4 z-20 rounded-xl border-2 border-blue-400 bg-white p-4 shadow-lg ring-4 ring-blue-50">
+    <section ref={ref} className="sticky top-4 z-10 rounded-xl border-2 border-blue-300 bg-white p-4 shadow-lg">
       <div className="mb-3 flex items-baseline justify-between">
         <h2 className="text-sm font-semibold text-neutral-900">
           Your agent is asking for permission
