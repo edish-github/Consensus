@@ -1,29 +1,46 @@
 import { getDecisionState } from './getDecisionState';
 import { listDocuments } from './listDocuments';
 import { locateEvidence } from './locateEvidence';
+import { explainRanking } from './explainRanking';
 import { requestDisclosure } from './requestDisclosure';
 import { readSnippet } from './readSnippet';
-import { explainRanking } from './explainRanking';
+import { proposeCriterion } from './proposeCriterion';
+import { proposeScore } from './proposeScore';
+import { attachEvidence } from './attachEvidence';
+import { flagInconsistency } from './flagInconsistency';
 import type { AnyToolDefinition } from '../types';
 import type { Capabilities } from '@/lib/store/selectors';
 
 /**
- * The tool catalogue.
+ * THE COMPLETE TOOL SURFACE — ten tools, three capability classes.
  *
- * BATCH 4: six tools, all running against real state. No fixtures remain.
- * The proposal and challenge tools land in B2-07 through B2-09.
+ *   A · read-only    get_decision_state, list_documents, locate_evidence, explain_ranking
+ *   B · gated        request_disclosure, read_snippet
+ *   C · proposal     propose_criterion, propose_score, attach_evidence, flag_inconsistency
  *
- * Registration is capability-gated: each tool declares what it actually needs.
- * Remove every document and the four document tools unregister, because
- * `documents` stops being satisfied and the registry diffs against the new set.
+ * ══════════════════════════════════════════════════════════════════════════
+ *  TOOLS THAT DELIBERATELY DO NOT EXIST
+ *
+ *      set_score          set_weight         add_option
+ *      delete_option      finalize_decision  read_document
+ *
+ *  Their absence is the product. The agent can find, cite, argue and propose;
+ *  it cannot move a number. That is enforced here, in code, not in a system
+ *  prompt — and asserted by evals/gate.spec.ts, which fails the build if any
+ *  of these names ever appears.
+ * ══════════════════════════════════════════════════════════════════════════
  */
 export const ALL_TOOLS: AnyToolDefinition[] = [
   getDecisionState,
   listDocuments,
   locateEvidence,
+  explainRanking,
   requestDisclosure,
   readSnippet,
-  explainRanking,
+  proposeCriterion,
+  proposeScore,
+  attachEvidence,
+  flagInconsistency,
 ];
 
 export function toolsFor(caps: Capabilities): AnyToolDefinition[] {
@@ -31,6 +48,7 @@ export function toolsFor(caps: Capabilities): AnyToolDefinition[] {
 }
 
 export {
-  getDecisionState, listDocuments, locateEvidence,
-  requestDisclosure, readSnippet, explainRanking,
+  getDecisionState, listDocuments, locateEvidence, explainRanking,
+  requestDisclosure, readSnippet,
+  proposeCriterion, proposeScore, attachEvidence, flagInconsistency,
 };
