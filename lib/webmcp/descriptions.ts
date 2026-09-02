@@ -19,11 +19,11 @@ export const DESCRIPTIONS = {
     "List the confidential documents the user has loaded into this browser session. Returns filenames, page counts, which option each document belongs to, and parse status. Returns no document content.",
 
   locate_evidence:
-  'Search the user documents and return WHERE matches are, not what they say. ' +
-  'Call this freely — it needs no permission and returns no document text. ' +
-  'Returns document, page number, match count and relevance only. ' +
-  'Reading a page is a separate, gated step: only read_snippet needs approval. ' +
-  'Never guess the contents of a page you have not read.',
+    'Search the user documents and return WHERE matches are, not what they say. ' +
+    'Call this freely — it needs no permission and returns no document text. ' +
+    'Returns document, page number, match count and relevance only. ' +
+    'Reading a page is a separate, gated step: only read_snippet needs approval. ' +
+    'Never guess the contents of a page you have not read.',
 
   explain_ranking:
     'Return the arithmetic behind the current ranking: each option per-criterion weighted contribution, its total, and the smallest single weight change that would invert the top two. Use this to explain why an option leads.',
