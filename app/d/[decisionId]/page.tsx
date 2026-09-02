@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { WebMCPProvider } from '@/components/agent/WebMCPProvider';
 import { ToolSurfacePanel } from '@/components/agent/ToolSurfacePanel';
+import { JudgeQuickstart } from '@/components/agent/JudgeQuickstart';
 import { DecisionMatrix } from '@/components/matrix/DecisionMatrix';
 import { RankingBoard } from '@/components/matrix/RankingBoard';
 import { EvidenceVault } from '@/components/evidence/EvidenceVault';
@@ -58,6 +59,7 @@ export default function WorkspacePage() {
             <ProposalQueue />
             <DecisionMatrix />
             <ToolSurfacePanel />
+            <JudgeQuickstart />
           </div>
 
           <div className="space-y-5">

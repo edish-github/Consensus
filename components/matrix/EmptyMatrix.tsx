@@ -1,16 +1,30 @@
 'use client';
 
+import { useState } from 'react';
 import { useConsensusStore } from '@/lib/store';
+import { loadSampleCorpus } from '@/lib/ingest/ingest';
 
 /**
  * First-run state.
  *
- * It tells the human what to say to the agent, not just what to click. A
- * WebMCP app whose empty state does not suggest a prompt leaves the visitor
- * staring at a blank grid wondering what the agent is even for.
+ * Provides a single button to load the full 3-vendor matrix and ingest the
+ * 5 synthetic PDFs (89 pages) entirely client-side.
  */
 export function EmptyMatrix() {
+  const [loading, setLoading] = useState(false);
   const seed = useConsensusStore((s) => s.seedDemoScenario);
+
+  async function setUpDemo() {
+    setLoading(true);
+    try {
+      seed();
+      await loadSampleCorpus();
+    } catch (err) {
+      console.error('Failed to set up demo:', err);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <div className="rounded-xl border border-dashed border-neutral-300 bg-neutral-50 p-8 text-center">
@@ -24,10 +38,11 @@ export function EmptyMatrix() {
       <div className="mt-5 flex items-center justify-center gap-3">
         <button
           type="button"
-          onClick={seed}
-          className="rounded-lg bg-neutral-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-neutral-700"
+          onClick={setUpDemo}
+          disabled={loading}
+          className="rounded-lg bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-neutral-700 disabled:opacity-50"
         >
-          Load demo scenario
+          {loading ? 'Setting up demo…' : 'Set up the demo — 3 vendors, 5 documents, 89 pages'}
         </button>
       </div>
 
