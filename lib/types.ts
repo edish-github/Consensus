@@ -174,6 +174,8 @@ export interface Challenge {
   evidenceRefs: EvidenceRef[];
   /** Pages it located but has NOT been allowed to read. The demo climax. */
   unreadRefs: EvidenceRef[];
+  /** Disclosure requests created for unreadRefs, so the card can release them. */
+  pendingRequestIds: Id[];
   state: 'open' | 'accepted' | 'dismissed';
   createdAt: number;
 }
