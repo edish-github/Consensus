@@ -73,9 +73,8 @@ export async function extractDocument(
 
   const task = pdfjs.getDocument({
     data: new Uint8Array(buffer),
-    // pdf.js v6 fetches nothing remote for a data: source, which keeps the
-    // "nothing leaves the browser" claim true even for a malformed PDF.
-    disableFontFace: false,
+    disableFontFace: true,
+    useSystemFonts: true,
   });
 
   // Attach immediate catch handler to prevent browser unhandledRejection events

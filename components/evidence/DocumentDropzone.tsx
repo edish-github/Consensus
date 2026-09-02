@@ -24,13 +24,19 @@ export function DocumentDropzone() {
     const pdfs = Array.from(list).filter(
       (f) => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')
     );
-    if (pdfs.length > 0) void ingestFiles(pdfs);
+    if (pdfs.length > 0) {
+      ingestFiles(pdfs).catch((err) => {
+        console.error('Failed to ingest dropped files:', err);
+      });
+    }
   }
 
   async function handleSample() {
     setLoadingSample(true);
     try {
       await loadSampleCorpus();
+    } catch (err) {
+      console.error('Failed to load sample corpus:', err);
     } finally {
       setLoadingSample(false);
     }
