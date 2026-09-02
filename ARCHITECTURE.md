@@ -51,7 +51,7 @@ Every one of these comes from the judging environment and shaped the design.
 
 ## 2 · System overview
 
-![System architecture](diagrams/01-system-architecture.svg)
+![System architecture](docs/diagrams/01-system-architecture.svg)
 
 Everything runs in the browser. No application server, no database, no
 authentication, no upload endpoint.
@@ -153,7 +153,7 @@ confidential plaintext, and it is referenced by exactly two modules — the sear
 indexer and `readPage.ts`. Keeping that surface this narrow is what makes the
 security test tractable.
 
-![Data model](diagrams/13-data-model-er.svg)
+![Data model](docs/diagrams/13-data-model-er.svg)
 
 Key shapes:
 
@@ -172,7 +172,7 @@ Key shapes:
 
 ## 6 · State
 
-![Scoring engine](diagrams/10-scoring-engine.svg)
+![Scoring engine](docs/diagrams/10-scoring-engine.svg)
 
 Five slices composed into one Zustand store.
 
@@ -220,7 +220,7 @@ Tools now declare `requires: (keyof Capabilities)[]`, and the registry filters
 on satisfied capabilities. Each tool is gated on what it actually needs, which
 is both correct and a better claim than an arbitrary sequence.
 
-![Capability gating](diagrams/07-capability-gated-registration.svg)
+![Capability gating](docs/diagrams/07-capability-gated-registration.svg)
 
 ### The epoch controller
 
@@ -238,9 +238,9 @@ re-register it, churning the agent's tool list on every score entry.
 
 ## 8 · Tool catalogue
 
-![Tool surface](diagrams/06-tool-surface-map.svg)
+![Tool surface](docs/diagrams/06-tool-surface-map.svg)
 
-Ten tools. Full schemas in [`TOOLS.md`](TOOLS.md), which is generated from the
+Ten tools. Full schemas in [`docs/TOOLS.md`](docs/TOOLS.md), which is generated from the
 code and cannot drift.
 
 **Design note that matters for testability:** a tool's `execute` returns the
@@ -258,9 +258,9 @@ result; one receiving `{ok:false, code, hint}` self-corrects.
 
 ## 9 · The disclosure gate
 
-![Disclosure gate](diagrams/03-disclosure-gate-state-machine.svg)
+![Disclosure gate](docs/diagrams/03-disclosure-gate-state-machine.svg)
 
-See [`SECURITY.md §5`](SECURITY.md#5--the-human-in-the-loop-gate) for the full
+See [`docs/SECURITY.md §5`](docs/SECURITY.md#5--the-human-in-the-loop-gate) for the full
 model. Architecturally:
 
 - `createRequest` is callable from a tool; it grants nothing
@@ -272,7 +272,7 @@ model. Architecturally:
 
 ## 10 · Ingestion
 
-![Ingestion](diagrams/08-ingestion-pipeline.svg)
+![Ingestion](docs/diagrams/08-ingestion-pipeline.svg)
 
 ### ⚠ Divergence 2 — the threading model
 
@@ -307,10 +307,10 @@ quotes. A query for "subprocessor" must match a page that rendered it as
 
 ## 11 · Search
 
-![Metadata projection](diagrams/09-metadata-projection.svg)
+![Metadata projection](docs/diagrams/09-metadata-projection.svg)
 
 Two independent barriers, detailed in
-[`SECURITY.md §4`](SECURITY.md#4--fail-closed-projection):
+[`docs/SECURITY.md §4`](docs/SECURITY.md#4--fail-closed-projection):
 
 1. `storeFields` excludes `text` — no field exists on a hit to leak
 2. `projectToMetadata` constructs its output field by field, never spreads
@@ -353,7 +353,7 @@ animation never jitters.
 
 ## 13 · Error contract
 
-![Error contract](diagrams/18-error-contract.svg)
+![Error contract](docs/diagrams/18-error-contract.svg)
 
 ```ts
 type ToolResult<T> =
@@ -382,10 +382,10 @@ could carry document text; never scrub anything we wrote ourselves.**
 
 ## 14 · Evals
 
-![Eval harness](diagrams/19-eval-harness.svg)
+![Eval harness](docs/diagrams/19-eval-harness.svg)
 
 77 automated assertions across four suites, plus a 13-prompt manual protocol.
-Full results and findings in [`../evals/RESULTS.md`](../evals/RESULTS.md).
+Full results and findings in [`evals/RESULTS.md`](evals/RESULTS.md).
 
 The security suite has been verified by breaking it — three tests fail
 simultaneously when a preview field is added to the projection.
@@ -394,7 +394,7 @@ simultaneously when a preview field is added to the projection.
 
 ## 15 · Deployment
 
-![Deployment](diagrams/14-deployment-architecture.svg)
+![Deployment](docs/diagrams/14-deployment-architecture.svg)
 
 Vercel. Static plus client bundle, HTTPS automatic. No server-side logic, so
 migration to Cloudflare Workers or Netlify is a config change.
@@ -403,7 +403,7 @@ Requirements: HTTPS (C5), workspace at a top-level route never framed (C1),
 `pdf.worker.min.mjs` served same-origin from `public/` so the CSP can keep
 `worker-src 'self'`.
 
-Full header policy in [`SECURITY.md §3`](SECURITY.md#3--zero-egress--the-csp).
+Full header policy in [`docs/SECURITY.md §3`](docs/SECURITY.md#3--zero-egress--the-csp).
 
 ---
 
@@ -429,8 +429,8 @@ Full header policy in [`SECURITY.md §3`](SECURITY.md#3--zero-egress--the-csp).
 
 ## Related
 
-- [`WHY-WEBMCP.md`](WHY-WEBMCP.md) — why the browser, in full
-- [`SECURITY.md`](SECURITY.md) — the complete security model
-- [`TOOLS.md`](TOOLS.md) — generated tool reference
-- [`../evals/RESULTS.md`](../evals/RESULTS.md) — every run and every finding
-- [`diagrams/`](diagrams/) — all 22 diagrams, sources in `diagrams/src/`
+- [`docs/WHY-WEBMCP.md`](docs/WHY-WEBMCP.md) — why the browser, in full
+- [`docs/SECURITY.md`](docs/SECURITY.md) — the complete security model
+- [`docs/TOOLS.md`](docs/TOOLS.md) — generated tool reference
+- [`evals/RESULTS.md`](evals/RESULTS.md) — every run and every finding
+- [`docs/diagrams/`](docs/diagrams/) — all 22 diagrams, sources in `docs/diagrams/src/`
