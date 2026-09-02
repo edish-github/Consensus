@@ -47,6 +47,9 @@ let pdfjsPromise: Promise<typeof import('pdfjs-dist')> | null = null;
 async function loadPdfjs() {
   if (!pdfjsPromise) {
     pdfjsPromise = (import('pdfjs-dist/legacy/build/pdf.mjs') as unknown as Promise<typeof import('pdfjs-dist')>).then((lib) => {
+      if (typeof window !== 'undefined') {
+        lib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
+      }
       return lib;
     });
   }
