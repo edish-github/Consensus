@@ -4,8 +4,9 @@ import { WebMCPProvider } from '@/components/agent/WebMCPProvider';
 import { ToolSurfacePanel } from '@/components/agent/ToolSurfacePanel';
 import { DecisionMatrix } from '@/components/matrix/DecisionMatrix';
 import { RankingBoard } from '@/components/matrix/RankingBoard';
+import { EvidenceVault } from '@/components/evidence/EvidenceVault';
 import { useConsensusStore } from '@/lib/store';
-import { selectCapabilities, selectPhase, type Capabilities } from '@/lib/store/selectors';
+import { selectCapabilities, type Capabilities } from '@/lib/store/selectors';
 
 /**
  * THE WORKSPACE.
@@ -14,12 +15,11 @@ import { selectCapabilities, selectPhase, type Capabilities } from '@/lib/store/
  * ChatGPT's built-in browser does not discover tools registered inside
  * iframes, so a stray wrapper here silently removes every tool.
  *
- * Capability-gated tool registration: each tool registers when the workspace
- * capabilities it requires are satisfied.
+ * BATCH 3: matrix, ranking, evidence vault, capability-gated registration.
+ * The disclosure gate, proposal queue and challenge card land in B2.
  */
 export default function WorkspacePage() {
   const capabilities = useConsensusStore(selectCapabilities);
-  const phase = useConsensusStore(selectPhase);
   const title = useConsensusStore((s) => s.decisionTitle);
   const setTitle = useConsensusStore((s) => s.setDecisionTitle);
 
@@ -40,17 +40,18 @@ export default function WorkspacePage() {
         />
       </header>
 
-      <WebMCPProvider capabilities={capabilities} phase={phase}>
-        <div className="mt-5 grid gap-5 lg:grid-cols-[1fr_300px]">
-          <DecisionMatrix />
+      <WebMCPProvider capabilities={capabilities}>
+        <div className="mt-5 grid gap-5 lg:grid-cols-[1fr_320px]">
+          <div className="space-y-5">
+            <DecisionMatrix />
+            <ToolSurfacePanel />
+          </div>
+
           <div className="space-y-5">
             <RankingBoard />
-            <PhaseCard capabilities={capabilities} phase={phase} />
+            <EvidenceVault />
+            <CapabilityCard capabilities={capabilities} />
           </div>
-        </div>
-
-        <div className="mt-5">
-          <ToolSurfacePanel />
         </div>
       </WebMCPProvider>
     </main>
@@ -58,64 +59,47 @@ export default function WorkspacePage() {
 }
 
 /**
- * Shows which registration phase and capabilities are active.
+ * Which capabilities are satisfied, and what each one unlocks.
+ *
+ * A demo asset as much as a debugging aid: it makes "the tool surface changes
+ * with page state" legible without the viewer opening the site-tools popover
+ * and counting.
  */
-function PhaseCard({ capabilities, phase }: { capabilities: Capabilities; phase: 0 | 1 | 2 | 3 }) {
-  const getStatusText = () => {
-    if (phase === 3) return 'All tools and inconsistency challenges unlocked';
-    if (capabilities.matrix && capabilities.documents) return 'Matrix & documents active · Add human score for challenges';
-    if (capabilities.matrix) return 'Matrix active · explain_ranking unlocked · Add documents for search';
-    if (capabilities.documents) return 'Documents indexed · Evidence search unlocked · Add matrix options';
-    return 'Add matrix options or drop documents to unlock tools';
-  };
+function CapabilityCard({ capabilities }: { capabilities: Capabilities }) {
+  const items = [
+    { key: 'matrix' as const, label: 'Matrix', unlocks: 'explain_ranking, scoring proposals' },
+    { key: 'documents' as const, label: 'Documents', unlocks: 'locate_evidence, disclosure' },
+    { key: 'humanScore' as const, label: 'Scored', unlocks: 'flag_inconsistency' },
+  ];
+  const satisfied = items.filter((i) => capabilities[i.key]).length;
 
   return (
     <div className="rounded-xl border border-neutral-200 bg-white p-4">
       <div className="flex items-baseline justify-between">
-        <h2 className="text-sm font-semibold text-neutral-900">Registration phase</h2>
-        <span className="text-xs font-semibold tabular-nums text-neutral-900">{phase} / 3</span>
+        <h2 className="text-sm font-semibold text-neutral-900">Capabilities</h2>
+        <span className="text-xs font-semibold tabular-nums text-neutral-900">{satisfied} / 3</span>
       </div>
 
-      <div className="mt-2.5 flex gap-1" aria-hidden>
-        {[0, 1, 2, 3].map((p) => (
-          <div
-            key={p}
-            className={[
-              'h-1 flex-1 rounded-full transition-colors',
-              p <= phase ? 'bg-neutral-900' : 'bg-neutral-200',
-            ].join(' ')}
-          />
-        ))}
-      </div>
-
-      <div className="mt-3 flex flex-wrap gap-1.5">
-        <span
-          className={[
-            'inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium',
-            capabilities.matrix ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-neutral-100 text-neutral-400',
-          ].join(' ')}
-        >
-          {capabilities.matrix ? '✓' : '○'} Matrix
-        </span>
-        <span
-          className={[
-            'inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium',
-            capabilities.documents ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-neutral-100 text-neutral-400',
-          ].join(' ')}
-        >
-          {capabilities.documents ? '✓' : '○'} Documents
-        </span>
-        <span
-          className={[
-            'inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium',
-            capabilities.humanScore ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-neutral-100 text-neutral-400',
-          ].join(' ')}
-        >
-          {capabilities.humanScore ? '✓' : '○'} Scored
-        </span>
-      </div>
-
-      <p className="mt-2 text-xs leading-relaxed text-neutral-600">{getStatusText()}</p>
+      <ul className="mt-3 space-y-1.5">
+        {items.map((item) => {
+          const on = capabilities[item.key];
+          return (
+            <li key={item.key} className="flex items-baseline gap-2">
+              <span
+                className={[
+                  'shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium',
+                  on ? 'bg-emerald-50 text-emerald-700' : 'bg-neutral-100 text-neutral-400',
+                ].join(' ')}
+              >
+                {on ? '✓' : '○'} {item.label}
+              </span>
+              <span className={`text-[10px] leading-snug ${on ? 'text-neutral-600' : 'text-neutral-400'}`}>
+                {item.unlocks}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }
