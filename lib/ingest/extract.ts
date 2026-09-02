@@ -38,17 +38,39 @@ function yieldToMain(): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, 0));
 }
 
+/**
+ * Module-worker support is not universal in embedded WebViews. pdfjs-dist v6
+ * ships its worker as an ES module, so where `new Worker(url, {type:'module'})`
+ * fails, pdf.js falls back to a path that throws a non-Error exception —
+ * which is where the "[object Object]" rejection came from.
+ *
+ * We probe once and, if module workers are unavailable, run pdf.js on the main
+ * thread instead. Slower, and it means yielding between pages carries more
+ * weight, but it parses. A demo that works everywhere beats one that is fast
+ * in Chrome and broken in the browser the judges will use.
+ */
+function moduleWorkersSupported(): boolean {
+  try {
+    const w = new Worker('data:text/javascript,export{}', { type: 'module' });
+    w.terminate();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 let pdfjsPromise: Promise<typeof import('pdfjs-dist')> | null = null;
 
-/**
- * pdfjs-dist legacy build is used for universal compatibility across standard browsers
- * and embedded WebViews (like ChatGPT desktop app), avoiding module worker / blob URL bugs.
- */
 async function loadPdfjs() {
   if (!pdfjsPromise) {
-    pdfjsPromise = (import('pdfjs-dist/legacy/build/pdf.mjs') as unknown as Promise<typeof import('pdfjs-dist')>).then((lib) => {
-      if (typeof window !== 'undefined') {
+    pdfjsPromise = import('pdfjs-dist').then((lib) => {
+      if (moduleWorkersSupported()) {
         lib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
+      } else {
+        // Empty workerSrc puts pdf.js in main-thread mode deliberately, rather
+        // than letting it discover the failure and throw.
+        lib.GlobalWorkerOptions.workerSrc = '';
+        console.info('[ingest] module workers unavailable — parsing on the main thread');
       }
       return lib;
     });
@@ -68,7 +90,6 @@ export async function extractDocument(
   const task = pdfjs.getDocument({
     data: new Uint8Array(buffer),
     disableFontFace: true,
-    useSystemFonts: true,
   });
 
   // Attach immediate catch handler to prevent browser unhandledRejection events

@@ -47,8 +47,18 @@ export async function ingestFile(file: File, optionId?: Id): Promise<Id> {
     addDocumentToIndex(documentId, result.chunks);
     store.getState().updateDocumentStatus(documentId, 'ready');
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Failed to read this file';
-    store.getState().updateDocumentStatus(documentId, 'failed', message.slice(0, 120));
+    // pdf.js throws its own exception classes, not Error instances. `${e}` on a
+    // PasswordException or UnknownErrorException gives "[object Object]", which
+    // is why the dev overlay was useless. Pull out the fields it actually has.
+    const detail =
+      e instanceof Error
+        ? e.message
+        : typeof e === 'object' && e !== null
+          ? `${(e as { name?: string }).name ?? 'PDFError'}: ${(e as { message?: string }).message ?? JSON.stringify(e).slice(0, 100)}`
+          : String(e);
+
+    console.error('[ingest] failed', file.name, e);
+    store.getState().updateDocumentStatus(documentId, 'failed', detail.slice(0, 120));
   }
 
   return documentId;

@@ -17,13 +17,13 @@ try {
   const entry = require.resolve('pdfjs-dist/package.json');
   const pkgDir = dirname(entry);
   const candidates = [
-    join(pkgDir, 'legacy', 'build', 'pdf.worker.min.mjs'),
-    join(pkgDir, 'legacy', 'build', 'pdf.worker.mjs'),
     join(pkgDir, 'build', 'pdf.worker.min.mjs'),
     join(pkgDir, 'build', 'pdf.worker.mjs'),
+    join(pkgDir, 'legacy', 'build', 'pdf.worker.min.mjs'),
+    join(pkgDir, 'legacy', 'build', 'pdf.worker.mjs'),
   ];
   const src = candidates.find(existsSync);
-  if (!src) throw new Error('pdf.worker not found in pdfjs-dist/legacy/build or build');
+  if (!src) throw new Error('pdf.worker not found in pdfjs-dist/build');
 
   mkdirSync('public', { recursive: true });
   copyFileSync(src, join('public', 'pdf.worker.min.mjs'));
