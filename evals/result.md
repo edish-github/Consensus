@@ -30,3 +30,11 @@ had bled across the tool set.
 
 Fix: description now states searching is free before any mention of
 gating, and scopes approval to read_snippet by name. Re-tested: resolved.
+
+## B1 — composition & gap reasoning
+
+### explain_ranking + get_decision_state — composed correctly
+**Prompt:** "Why is Vendor C winning?"  
+**Tools:** `explain_ranking` (1ms), `get_decision_state` (0ms)  
+**Agent output:** identified the leader as provisional on a 25%-scored, price-only record; distinguished "excluded" from "zeroed"; volunteered that no entered score has supporting evidence.  
+**Note:** the `gaps` array and `completeness` fields did the work here. The agent reasoned about the shape of the evidence, not just the numbers.
