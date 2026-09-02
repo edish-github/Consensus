@@ -9,19 +9,23 @@ import { EvidenceVault } from '@/components/evidence/EvidenceVault';
 import { DisclosureQueue } from '@/components/gate/DisclosureQueue';
 import { DisclosureLedger } from '@/components/gate/DisclosureLedger';
 import { SealIndicator } from '@/components/gate/SealIndicator';
+import { ProposalQueue } from '@/components/proposals/ProposalQueue';
 import { useConsensusStore } from '@/lib/store';
 import { selectCapabilities, type Capabilities } from '@/lib/store/selectors';
 
 /**
- * THE WORKSPACE.
+ * THE WORKSPACE — complete.
  *
  * Top-level route, rendered directly in the main document. Never framed:
  * ChatGPT's built-in browser does not discover tools registered inside
  * iframes, so a stray wrapper here silently removes every tool.
  *
- * BATCH 4: the disclosure gate is live. The approval queue sits above the
- * matrix rather than in the sidebar, because a pending request is the one
- * thing on screen genuinely waiting on the human — it should interrupt.
+ * Layout order in the left column is deliberate and reads as urgency:
+ *
+ *   1. DisclosureQueue — sticky. The agent has stopped and is waiting on you.
+ *   2. ProposalQueue   — challenges first, then suggestions.
+ *   3. DecisionMatrix  — the artifact both parties are working on.
+ *   4. ToolSurfacePanel — what the agent can currently do, and what it did.
  */
 export default function WorkspacePage() {
   const capabilities = useConsensusStore(selectCapabilities);
@@ -50,6 +54,7 @@ export default function WorkspacePage() {
         <div className="mt-5 grid gap-5 lg:grid-cols-[1fr_320px]">
           <div className="space-y-5">
             <DisclosureQueue />
+            <ProposalQueue />
             <DecisionMatrix />
             <ToolSurfacePanel />
           </div>
@@ -69,7 +74,7 @@ export default function WorkspacePage() {
 
 function CapabilityCard({ capabilities }: { capabilities: Capabilities }) {
   const items = [
-    { key: 'matrix' as const, label: 'Matrix', unlocks: 'explain_ranking, scoring proposals' },
+    { key: 'matrix' as const, label: 'Matrix', unlocks: 'explain_ranking, propose_score, attach_evidence' },
     { key: 'documents' as const, label: 'Documents', unlocks: 'locate_evidence, disclosure' },
     { key: 'humanScore' as const, label: 'Scored', unlocks: 'flag_inconsistency' },
   ];
