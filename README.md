@@ -41,7 +41,7 @@ Consensus removes the choice.
 
 ## What leaves your browser
 
-![Trust boundary](docs/diagrams/02-trust-boundary.svg)
+[![Trust boundary](docs/diagrams/02-trust-boundary.svg)](docs/diagrams/02-trust-boundary.svg)
 
 | Data | Leaves the tab? | Gate |
 |---|---|---|
@@ -99,7 +99,7 @@ already holds the plaintext**, under a per-call contract with a JSON Schema and
 an annotation model. That is what lets search and disclosure be two separate
 capabilities.
 
-![Why WebMCP](docs/diagrams/16-why-webmcp-comparison.svg)
+[![Why WebMCP](docs/diagrams/16-why-webmcp-comparison.svg)](docs/diagrams/16-why-webmcp-comparison.svg)
 
 Full argument: **[docs/WHY-WEBMCP.md](docs/WHY-WEBMCP.md)**
 
@@ -109,7 +109,7 @@ Full argument: **[docs/WHY-WEBMCP.md](docs/WHY-WEBMCP.md)**
 
 Ten tools, three capability classes.
 
-![Tool surface](docs/diagrams/06-tool-surface-map.svg)
+[![Tool surface](docs/diagrams/06-tool-surface-map.svg)](docs/diagrams/06-tool-surface-map.svg)
 
 | Tool | Class | `readOnlyHint` | Gated | What it does |
 |---|:---:|:---:|:---:|---|
@@ -140,7 +140,7 @@ appears.
 
 ## The disclosure gate
 
-![Disclosure gate](docs/diagrams/03-disclosure-gate-state-machine.svg)
+[![Disclosure gate](docs/diagrams/03-disclosure-gate-state-machine.svg)](docs/diagrams/03-disclosure-gate-state-machine.svg)
 
 Every page of every document sits in one of five states. The transition to
 `released` is callable from exactly one place in the codebase.
