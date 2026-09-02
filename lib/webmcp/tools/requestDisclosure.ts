@@ -62,21 +62,23 @@ export const requestDisclosure: ToolDefinition<Input, unknown> = {
     }
 
     const s = store.getState();
-    const doc = s.documents.find((d) => d.id === documentId);
+    const doc = s.documents.find(
+      (d) => d.id === documentId || d.filename === documentId || d.filename.startsWith(documentId)
+    );
     if (!doc) {
       return err('NOT_FOUND', `No document with id ${documentId}`, {
         hint: 'Call list_documents for valid document ids.',
       });
     }
 
-    const pages = availablePages(documentId);
+    const pages = availablePages(doc.id);
     if (!pages.includes(page)) {
       return err('NOT_FOUND', `Page ${page} has no extractable text in ${doc.filename}`, {
         hint: 'Pick a page that appeared in a locate_evidence result.',
       });
     }
 
-    const result = s.createRequest(documentId, page, reason);
+    const result = s.createRequest(doc.id, page, reason);
 
     if (!result.ok) {
       if (result.code === 'RATE_LIMITED') {

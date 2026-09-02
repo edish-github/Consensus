@@ -126,20 +126,27 @@ export const flagInconsistency: ToolDefinition<Input, unknown> = {
      */
     const unreadRefs: EvidenceRef[] = [];
     const pendingIds: Id[] = [];
+    const option = s.options.find((o) => o.id === optionId);
+    const criterion = s.criteria.find((c) => c.id === criterionId);
+
     for (const ref of input?.unreadRefs ?? []) {
-      const seal = s.sealStateFor(ref.documentId, ref.page);
+      const doc = s.documents.find(
+        (d) => d.id === ref.documentId || d.filename === ref.documentId || d.filename.startsWith(ref.documentId)
+      );
+      const docId = doc?.id ?? ref.documentId;
+      const seal = s.sealStateFor(docId, ref.page);
       if (seal === 'released') continue; // already readable; not "unread"
       if (seal === 'blocked') continue;  // the user has settled this twice
 
-      const filename = s.documents.find((d) => d.id === ref.documentId)?.filename ?? ref.documentId;
       const created = s.createRequest(
-        ref.documentId,
+        docId,
         ref.page,
-        `Challenging a score: ${argument.slice(0, 120)}`
+        `Flagged inconsistent score for ${option?.name ?? 'option'} on ${criterion?.name ?? 'criterion'}`
       );
-      if (created.ok) pendingIds.push(created.requestId);
-      unreadRefs.push({ documentId: ref.documentId, page: ref.page });
-      void filename;
+      if (created.ok) {
+        pendingIds.push(created.requestId);
+        unreadRefs.push({ documentId: docId, page: ref.page });
+      }
     }
 
     const challengeId = s.addChallenge({
