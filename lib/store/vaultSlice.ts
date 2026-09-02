@@ -3,22 +3,23 @@ import type { Id, PageChunk, VaultDocument } from '@/lib/types';
 import type { ConsensusStore } from './index';
 
 /**
- * BLOCK 1: shape only. The pdf.js worker, chunker and MiniSearch index land
- * in B1-07 through B1-09.
+ * The vault.
  *
- * It exists now because selectPhase reads `documents` to decide whether the
- * search and disclosure tools should be registered, and phase derivation has
- * to be wired before there is anything to derive from.
- *
- * ⚠ chunks holds plaintext. Never spread a PageChunk into a tool result.
+ * ⚠ `chunks` holds confidential plaintext. It is read by exactly two modules:
+ * lib/search/index.ts (to build the BM25 index) and lib/vault/readPage.ts
+ * (for read_snippet after a gate check). Nothing else may touch it.
  */
 export interface VaultSlice {
   documents: VaultDocument[];
   chunks: Record<Id, PageChunk[]>;
+  /** documentId -> [pagesDone, pageCount], for the progress bar during parse. */
+  parseProgress: Record<Id, [number, number]>;
   indexReady: boolean;
 
   addDocument: (doc: VaultDocument) => void;
   updateDocumentStatus: (id: Id, status: VaultDocument['status'], error?: string) => void;
+  setPageCount: (id: Id, pageCount: number) => void;
+  setParseProgress: (id: Id, page: number, pageCount: number) => void;
   setDocumentOption: (docId: Id, optionId: Id | undefined) => void;
   removeDocument: (id: Id) => void;
   setChunks: (docId: Id, chunks: PageChunk[]) => void;
@@ -33,6 +34,7 @@ export const createVaultSlice: StateCreator<
 > = (set) => ({
   documents: [],
   chunks: {},
+  parseProgress: {},
   indexReady: false,
 
   addDocument: (doc) =>
@@ -47,7 +49,19 @@ export const createVaultSlice: StateCreator<
       doc.status = status;
       doc.error = error;
       if (status === 'ready') doc.parsedAt = Date.now();
+      if (status !== 'parsing') delete s.parseProgress[id];
       s.indexReady = s.documents.some((d) => d.status === 'ready');
+    }),
+
+  setPageCount: (id, pageCount) =>
+    set((s) => {
+      const doc = s.documents.find((d) => d.id === id);
+      if (doc) doc.pageCount = pageCount;
+    }),
+
+  setParseProgress: (id, page, pageCount) =>
+    set((s) => {
+      s.parseProgress[id] = [page, pageCount];
     }),
 
   setDocumentOption: (docId, optionId) =>
@@ -60,6 +74,7 @@ export const createVaultSlice: StateCreator<
     set((s) => {
       s.documents = s.documents.filter((d) => d.id !== id);
       delete s.chunks[id];
+      delete s.parseProgress[id];
       s.indexReady = s.documents.some((d) => d.status === 'ready');
     }),
 
@@ -72,6 +87,7 @@ export const createVaultSlice: StateCreator<
     set((s) => {
       s.documents = [];
       s.chunks = {};
+      s.parseProgress = {};
       s.indexReady = false;
     }),
 });

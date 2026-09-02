@@ -2,108 +2,92 @@ import type { ConsensusStore } from './index';
 import type { Gaps, RankedOption, Id } from '@/lib/types';
 import { computeRanking, analyseFlip } from '@/lib/scoring/rank';
 import { computeGaps } from '@/lib/scoring/gaps';
-import type { ToolPhase } from '@/lib/webmcp/types';
+import type { Capabilities } from '@/lib/webmcp/types';
+
+export type { Capabilities };
 
 /**
  * Derived state.
  *
- * These are plain functions over a snapshot rather than hooks, so both React
- * components and tool execute() functions can call them. Same inputs, same
- * outputs, no duplicated logic between what the human sees and what the agent
- * is told.
+ * Plain functions over a snapshot rather than hooks, so both React components
+ * and tool execute() functions can call them. Same inputs, same outputs, no
+ * duplicated logic between what the human sees and what the agent is told.
+ *
+ * ⚠ EVERY SELECTOR RETURNING AN OBJECT OR ARRAY MUST BE MEMOIZED.
+ *
+ * Zustand v5 uses useSyncExternalStore strictly. A selector that builds a
+ * fresh array on each call makes Object.is(prev, next) always false, React
+ * concludes the store changed on every render, and the app spins in an
+ * infinite loop. Caching against the referentially stable [options, criteria,
+ * scores] slices fixes it: immer swaps those references precisely when the
+ * data changes, so the cache invalidates exactly when it should.
  */
 
-let lastRankingArgs: [unknown, unknown, unknown] | null = null;
-let cachedRanking: RankedOption[] = [];
+type Deps = readonly [unknown, unknown, unknown];
+
+function sameDeps(a: Deps | null, b: Deps): boolean {
+  return a !== null && a[0] === b[0] && a[1] === b[1] && a[2] === b[2];
+}
+
+let rankingDeps: Deps | null = null;
+let rankingCache: RankedOption[] = [];
 
 export function selectRanking(s: ConsensusStore): RankedOption[] {
-  if (
-    lastRankingArgs &&
-    lastRankingArgs[0] === s.options &&
-    lastRankingArgs[1] === s.criteria &&
-    lastRankingArgs[2] === s.scores
-  ) {
-    return cachedRanking;
-  }
-  cachedRanking = computeRanking(s.options, s.criteria, s.scores);
-  lastRankingArgs = [s.options, s.criteria, s.scores];
-  return cachedRanking;
+  const deps: Deps = [s.options, s.criteria, s.scores];
+  if (sameDeps(rankingDeps, deps)) return rankingCache;
+  rankingCache = computeRanking(s.options, s.criteria, s.scores);
+  rankingDeps = deps;
+  return rankingCache;
 }
 
-let lastGapsArgs: [unknown, unknown, unknown] | null = null;
-let cachedGaps: Gaps | null = null;
+let gapsDeps: Deps | null = null;
+let gapsCache: Gaps = { unscoredCells: [], scoresWithoutEvidence: [] };
 
 export function selectGaps(s: ConsensusStore): Gaps {
-  if (
-    lastGapsArgs &&
-    lastGapsArgs[0] === s.options &&
-    lastGapsArgs[1] === s.criteria &&
-    lastGapsArgs[2] === s.scores
-  ) {
-    return cachedGaps!;
-  }
-  cachedGaps = computeGaps(s.options, s.criteria, s.scores);
-  lastGapsArgs = [s.options, s.criteria, s.scores];
-  return cachedGaps;
+  const deps: Deps = [s.options, s.criteria, s.scores];
+  if (sameDeps(gapsDeps, deps)) return gapsCache;
+  gapsCache = computeGaps(s.options, s.criteria, s.scores);
+  gapsDeps = deps;
+  return gapsCache;
 }
 
-let lastFlipArgs: [unknown, unknown, unknown] | null = null;
-let cachedFlip: ReturnType<typeof analyseFlip> | null = null;
+let flipDeps: Deps | null = null;
+let flipCache: ReturnType<typeof analyseFlip> | null = null;
 
 export function selectFlip(s: ConsensusStore): ReturnType<typeof analyseFlip> {
-  if (
-    lastFlipArgs &&
-    lastFlipArgs[0] === s.options &&
-    lastFlipArgs[1] === s.criteria &&
-    lastFlipArgs[2] === s.scores
-  ) {
-    return cachedFlip!;
-  }
-  cachedFlip = analyseFlip(s.options, s.criteria, s.scores);
-  lastFlipArgs = [s.options, s.criteria, s.scores];
-  return cachedFlip;
+  const deps: Deps = [s.options, s.criteria, s.scores];
+  if (sameDeps(flipDeps, deps) && flipCache) return flipCache;
+  flipCache = analyseFlip(s.options, s.criteria, s.scores);
+  flipDeps = deps;
+  return flipCache;
 }
+
+let capsDeps: Deps | null = null;
+let capsCache: Capabilities = { documents: false, matrix: false, humanScore: false };
 
 /**
- * Capabilities.
+ * What the workspace can currently support.
  *
- * Each tool is gated on the capability it actually needs, rather than
- * a rigid linear sequence.
+ * This is what drives tool registration. Reversible by construction: remove
+ * every document and `documents` goes false, the registry diffs against the
+ * smaller set, and locate_evidence unregisters.
  */
-export interface Capabilities {
-  documents: boolean;   // at least one indexed document
-  matrix: boolean;      // at least one option AND one criterion
-  humanScore: boolean;  // a human has entered a judgement to argue with
-}
-
-let lastCapsArgs: [boolean, boolean, boolean] | null = null;
-let cachedCaps: Capabilities = { documents: false, matrix: false, humanScore: false };
-
 export function selectCapabilities(s: ConsensusStore): Capabilities {
   const documents = s.documents.some((d) => d.status === 'ready');
   const matrix = s.options.length > 0 && s.criteria.length > 0;
   const humanScore = Object.values(s.scores).some((sc) => sc.source === 'human');
 
-  if (
-    lastCapsArgs &&
-    lastCapsArgs[0] === documents &&
-    lastCapsArgs[1] === matrix &&
-    lastCapsArgs[2] === humanScore
-  ) {
-    return cachedCaps;
-  }
-
-  cachedCaps = { documents, matrix, humanScore };
-  lastCapsArgs = [documents, matrix, humanScore];
-  return cachedCaps;
+  const deps: Deps = [documents, matrix, humanScore];
+  if (sameDeps(capsDeps, deps)) return capsCache;
+  capsCache = { documents, matrix, humanScore };
+  capsDeps = deps;
+  return capsCache;
 }
 
-/**
- * Derived score for the progress indicator. Never used for registration.
- */
-export function selectPhase(s: ConsensusStore): ToolPhase {
+/** Count of satisfied capabilities, for the progress indicator. Never used for registration. */
+export function selectSatisfiedCount(s: ConsensusStore): number {
   const c = selectCapabilities(s);
-  return (Number(c.documents) + Number(c.matrix) + Number(c.humanScore)) as ToolPhase;
+  return Number(c.documents) + Number(c.matrix) + Number(c.humanScore);
 }
 
 export function selectOptionName(s: ConsensusStore, id: Id): string {
@@ -113,4 +97,3 @@ export function selectOptionName(s: ConsensusStore, id: Id): string {
 export function selectCriterionName(s: ConsensusStore, id: Id): string {
   return s.criteria.find((c) => c.id === id)?.name ?? id;
 }
-
