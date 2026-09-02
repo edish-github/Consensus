@@ -83,7 +83,7 @@ export function MatrixCell({
           'group relative flex h-14 w-full flex-col items-center justify-center rounded-lg border transition',
           'focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-1',
           challenged
-            ? 'border-red-400 bg-red-50 ring-2 ring-red-200'
+            ? 'border-red-400 bg-red-50 ring-2 ring-red-300 animate-[pulse_1s_ease-out_2]'
             : proposed
               ? 'border-amber-300 bg-amber-50/40'
               : score
@@ -100,17 +100,20 @@ export function MatrixCell({
           {score ? score.value : '—'}
         </span>
 
-        <span className="flex h-3 items-center gap-1">
+        <span className="flex h-3.5 items-center gap-1">
           {evidenceCount > 0 && (
             <span
-              className="rounded bg-emerald-50 px-1 text-[9px] font-medium text-emerald-700"
+              className="rounded bg-emerald-50 px-1 text-[10px] font-medium text-emerald-700"
               title={`${evidenceCount} released ${evidenceCount === 1 ? 'page' : 'pages'} cited`}
             >
               {evidenceCount === 1 ? 'cited' : `${evidenceCount} cited`}
             </span>
           )}
           {unevidenced && (
-            <span className="text-[9px] text-neutral-400" title="Scored with no supporting document">
+            <span
+              className="rounded bg-amber-50 px-1 text-[10px] font-medium text-amber-700"
+              title="Scored with no supporting document"
+            >
               no source
             </span>
           )}

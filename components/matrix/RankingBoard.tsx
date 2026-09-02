@@ -58,34 +58,37 @@ export function RankingBoard() {
             <div className="relative z-10 flex items-center gap-2.5">
               <span
                 className={[
-                  'flex h-5 w-5 shrink-0 items-center justify-center rounded text-[11px] font-semibold',
+                  'flex h-6 w-6 shrink-0 items-center justify-center rounded text-xs font-bold transition-colors',
                   r.rank === 1 && hasScores
-                    ? 'bg-neutral-900 text-white'
-                    : 'bg-neutral-200 text-neutral-600',
+                    ? 'bg-neutral-900 text-white shadow-xs'
+                    : 'bg-neutral-200 text-neutral-700',
                 ].join(' ')}
               >
                 {r.rank}
               </span>
 
-              <span className="text-sm font-medium text-neutral-900">{r.name}</span>
+              <span className="text-sm font-semibold text-neutral-900">{r.name}</span>
 
               <span className="ml-auto flex items-baseline gap-2">
                 {r.completeness < 1 && (
                   <span
-                    className="text-[10px] text-neutral-400"
+                    className="text-[10px] font-medium text-neutral-400"
                     title="Not every criterion is scored yet — this position is provisional"
                   >
                     {Math.round(r.completeness * 100)}% scored
                   </span>
                 )}
-                <span className="text-sm font-semibold tabular-nums text-neutral-900">
+                <span className="text-base font-bold tabular-nums text-neutral-900">
                   {r.scoredCount > 0 ? Math.round(r.normalised * 100) : '—'}
                 </span>
               </span>
             </div>
 
             <motion.div
-              className="absolute inset-y-0 left-0 z-0 bg-emerald-100"
+              className={[
+                'absolute inset-y-0 left-0 z-0 transition-colors',
+                r.rank === 1 && hasScores ? 'bg-emerald-200/90' : 'bg-emerald-100/70',
+              ].join(' ')}
               initial={false}
               animate={{ width: `${r.normalised * 100}%` }}
               transition={SPRING}
