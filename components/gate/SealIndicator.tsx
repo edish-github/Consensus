@@ -9,10 +9,9 @@ import { useConsensusStore } from '@/lib/store';
  * At 2:10 in the demo this is what the camera lands on before the ledger opens.
  */
 export function SealIndicator({ onClick }: { onClick?: () => void }) {
-  const released = useConsensusStore((s) => s.requests.filter((r) => r.state === 'released').length);
-  const denied = useConsensusStore((s) =>
-    s.requests.filter((r) => r.state === 'denied' || r.state === 'blocked').length
-  );
+  const requests = useConsensusStore((s) => s.requests);
+  const released = requests.filter((r) => r.state === 'released').length;
+  const denied = requests.filter((r) => r.state === 'denied' || r.state === 'blocked').length;
 
   if (released === 0 && denied === 0) return null;
 

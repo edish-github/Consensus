@@ -18,7 +18,8 @@ import { DisclosureRequestCard } from './DisclosureRequestCard';
  * model, so when it appears, you read it.
  */
 export function DisclosureQueue() {
-  const pending = useConsensusStore((s) => s.requests.filter((r) => r.state === 'requested'));
+  const requests = useConsensusStore((s) => s.requests);
+  const pending = requests.filter((r) => r.state === 'requested');
 
   if (pending.length === 0) return null;
 
