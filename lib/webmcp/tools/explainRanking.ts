@@ -14,6 +14,7 @@ import { explainRanking as buildExplanation } from '@/lib/scoring/explain';
 export const explainRanking: ToolDefinition<Record<string, never>, unknown> = {
   name: 'explain_ranking',
   description: DESCRIPTIONS.explain_ranking,
+  requires: ['matrix'],
   minPhase: 2,
   klass: 'A',
   annotations: { readOnlyHint: true, title: 'Explain the ranking' },

@@ -58,6 +58,8 @@ export interface ExecuteContext {
   signal?: AbortSignal;
 }
 
+export type CapabilityKey = 'documents' | 'matrix' | 'humanScore';
+
 export interface ToolDefinition<TInput = unknown, TOutput = unknown> {
   name: string;
   /** ≤500 chars — Chrome's published budget. Linted by evals/descriptions.spec.ts. */
@@ -68,8 +70,10 @@ export interface ToolDefinition<TInput = unknown, TOutput = unknown> {
     untrustedContentHint?: boolean;
     title?: string;
   };
-  /** Lowest phase at which this tool is registered. */
-  minPhase: ToolPhase;
+  /** Capabilities required for this tool to be registered. */
+  requires: CapabilityKey[];
+  /** Lowest phase at which this tool is registered (legacy/progress indicator). */
+  minPhase?: ToolPhase;
   klass: ToolClass;
   /** True when the human must approve something before this can succeed. */
   gated?: boolean;
@@ -79,3 +83,4 @@ export interface ToolDefinition<TInput = unknown, TOutput = unknown> {
 /** Convenience alias for the heterogeneous array in tools/index.ts. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AnyToolDefinition = ToolDefinition<any, any>;
+

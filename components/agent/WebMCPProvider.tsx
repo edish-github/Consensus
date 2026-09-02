@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react';
 import { detectModelContext, availabilityLabel, type WebMCPAvailability } from '@/lib/webmcp/client';
 import { syncRegistration, teardownRegistration } from '@/lib/webmcp/registry';
-import { toolsForPhase } from '@/lib/webmcp/tools';
+import { toolsFor, toolsForPhase } from '@/lib/webmcp/tools';
 import type { ToolPhase } from '@/lib/webmcp/types';
+import type { Capabilities } from '@/lib/store/selectors';
 
 /**
  * Owns the registration lifecycle for the workspace.
@@ -20,13 +21,13 @@ import type { ToolPhase } from '@/lib/webmcp/types';
  */
 
 interface Props {
-  /** In Block 0 this is fixed at 3. From B2-11 it comes from selectPhase(). */
+  capabilities?: Capabilities;
   phase?: ToolPhase;
   children: React.ReactNode;
   onAvailability?: (a: WebMCPAvailability) => void;
 }
 
-export function WebMCPProvider({ phase = 3, children, onAvailability }: Props) {
+export function WebMCPProvider({ capabilities, phase, children, onAvailability }: Props) {
   const [availability, setAvailability] = useState<WebMCPAvailability>({
     available: false,
     reason: 'ssr',
@@ -39,13 +40,15 @@ export function WebMCPProvider({ phase = 3, children, onAvailability }: Props) {
 
     if (!a.available) return;
 
+    const tools = capabilities ? toolsFor(capabilities) : toolsForPhase(phase ?? 3);
+
     // Idempotent: StrictMode's double-invoke produces one registration per tool.
-    syncRegistration(toolsForPhase(phase));
+    syncRegistration(tools);
 
     return () => {
       teardownRegistration();
     };
-  }, [phase, onAvailability]);
+  }, [capabilities, phase, onAvailability]);
 
   return (
     <>

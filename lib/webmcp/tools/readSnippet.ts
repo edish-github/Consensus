@@ -47,6 +47,7 @@ function delimit(text: string): string {
 export const readSnippet: ToolDefinition<Input, Output> = {
   name: 'read_snippet',
   description: DESCRIPTIONS.read_snippet,
+  requires: ['documents'],
   minPhase: 1,
   klass: 'B',
   gated: true,

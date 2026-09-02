@@ -65,28 +65,45 @@ export function selectFlip(s: ConsensusStore): ReturnType<typeof analyseFlip> {
 }
 
 /**
- * The registration phase.
+ * Capabilities.
  *
- * Cumulative and reversible. This is the function that makes tool registration
- * dynamic — remove every document and the disclosure tools unregister, because
- * this drops back to 0 and the registry diffs against it.
- *
- *   0  empty workspace
- *   1  at least one document indexed
- *   2  matrix has at least one option AND one criterion
- *   3  the human has entered at least one score by hand
- *      (this is what makes flag_inconsistency meaningful — there is now a
- *       human judgement for the agent to argue with)
+ * Each tool is gated on the capability it actually needs, rather than
+ * a rigid linear sequence.
+ */
+export interface Capabilities {
+  documents: boolean;   // at least one indexed document
+  matrix: boolean;      // at least one option AND one criterion
+  humanScore: boolean;  // a human has entered a judgement to argue with
+}
+
+let lastCapsArgs: [boolean, boolean, boolean] | null = null;
+let cachedCaps: Capabilities = { documents: false, matrix: false, humanScore: false };
+
+export function selectCapabilities(s: ConsensusStore): Capabilities {
+  const documents = s.documents.some((d) => d.status === 'ready');
+  const matrix = s.options.length > 0 && s.criteria.length > 0;
+  const humanScore = Object.values(s.scores).some((sc) => sc.source === 'human');
+
+  if (
+    lastCapsArgs &&
+    lastCapsArgs[0] === documents &&
+    lastCapsArgs[1] === matrix &&
+    lastCapsArgs[2] === humanScore
+  ) {
+    return cachedCaps;
+  }
+
+  cachedCaps = { documents, matrix, humanScore };
+  lastCapsArgs = [documents, matrix, humanScore];
+  return cachedCaps;
+}
+
+/**
+ * Derived score for the progress indicator. Never used for registration.
  */
 export function selectPhase(s: ConsensusStore): ToolPhase {
-  const hasDocuments = s.documents.some((d) => d.status === 'ready');
-  const hasMatrix = s.options.length > 0 && s.criteria.length > 0;
-  const hasHumanScore = Object.values(s.scores).some((sc) => sc.source === 'human');
-
-  if (hasDocuments && hasMatrix && hasHumanScore) return 3;
-  if (hasDocuments && hasMatrix) return 2;
-  if (hasDocuments) return 1;
-  return 0;
+  const c = selectCapabilities(s);
+  return (Number(c.documents) + Number(c.matrix) + Number(c.humanScore)) as ToolPhase;
 }
 
 export function selectOptionName(s: ConsensusStore, id: Id): string {
@@ -96,3 +113,4 @@ export function selectOptionName(s: ConsensusStore, id: Id): string {
 export function selectCriterionName(s: ConsensusStore, id: Id): string {
   return s.criteria.find((c) => c.id === id)?.name ?? id;
 }
+

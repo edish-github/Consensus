@@ -40,13 +40,16 @@ let epoch = 0;
  * Subscribable snapshot — powers ToolSurfacePanel                     *
  * ------------------------------------------------------------------ */
 
+import type { CapabilityKey } from './types';
+
 export interface RegisteredToolView {
   name: string;
   description: string;
   klass: 'A' | 'B' | 'C';
   readOnly: boolean;
   gated: boolean;
-  minPhase: ToolPhase;
+  requires: CapabilityKey[];
+  minPhase?: ToolPhase;
 }
 
 let snapshot: RegisteredToolView[] = [];
@@ -60,6 +63,7 @@ function publish(): void {
       klass: e.def.klass,
       readOnly: e.def.annotations?.readOnlyHint === true,
       gated: e.def.gated === true,
+      requires: e.def.requires ?? [],
       minPhase: e.def.minPhase,
     }))
     .sort((a, b) => a.klass.localeCompare(b.klass) || a.name.localeCompare(b.name));

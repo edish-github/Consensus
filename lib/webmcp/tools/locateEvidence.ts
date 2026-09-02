@@ -66,6 +66,7 @@ const WITHHELD_NOTE =
 export const locateEvidence: ToolDefinition<Input, Output> = {
   name: 'locate_evidence',
   description: DESCRIPTIONS.locate_evidence,
+  requires: ['documents'],
   minPhase: 1,
   klass: 'A',
   annotations: { readOnlyHint: true, title: 'Locate evidence (no text returned)' },

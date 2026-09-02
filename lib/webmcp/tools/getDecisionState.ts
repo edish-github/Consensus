@@ -18,6 +18,7 @@ import { selectRanking, selectGaps } from '@/lib/store/selectors';
 export const getDecisionState: ToolDefinition<Record<string, never>, unknown> = {
   name: 'get_decision_state',
   description: DESCRIPTIONS.get_decision_state,
+  requires: [],
   minPhase: 0,
   klass: 'A',
   annotations: { readOnlyHint: true, title: 'Read decision state' },

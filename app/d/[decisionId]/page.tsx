@@ -5,7 +5,7 @@ import { ToolSurfacePanel } from '@/components/agent/ToolSurfacePanel';
 import { DecisionMatrix } from '@/components/matrix/DecisionMatrix';
 import { RankingBoard } from '@/components/matrix/RankingBoard';
 import { useConsensusStore } from '@/lib/store';
-import { selectPhase } from '@/lib/store/selectors';
+import { selectCapabilities, selectPhase, type Capabilities } from '@/lib/store/selectors';
 
 /**
  * THE WORKSPACE.
@@ -14,10 +14,11 @@ import { selectPhase } from '@/lib/store/selectors';
  * ChatGPT's built-in browser does not discover tools registered inside
  * iframes, so a stray wrapper here silently removes every tool.
  *
- * BLOCK 2: matrix, ranking and live phase-driven registration. The vault,
- * gate, proposal queue and challenge card land in B1-07 through B2-09.
+ * Capability-gated tool registration: each tool registers when the workspace
+ * capabilities it requires are satisfied.
  */
 export default function WorkspacePage() {
+  const capabilities = useConsensusStore(selectCapabilities);
   const phase = useConsensusStore(selectPhase);
   const title = useConsensusStore((s) => s.decisionTitle);
   const setTitle = useConsensusStore((s) => s.setDecisionTitle);
@@ -39,12 +40,12 @@ export default function WorkspacePage() {
         />
       </header>
 
-      <WebMCPProvider phase={phase}>
+      <WebMCPProvider capabilities={capabilities} phase={phase}>
         <div className="mt-5 grid gap-5 lg:grid-cols-[1fr_300px]">
           <DecisionMatrix />
           <div className="space-y-5">
             <RankingBoard />
-            <PhaseCard phase={phase} />
+            <PhaseCard capabilities={capabilities} phase={phase} />
           </div>
         </div>
 
@@ -57,32 +58,22 @@ export default function WorkspacePage() {
 }
 
 /**
- * Shows which registration phase is active and what unlocks the next one.
- *
- * This is a demo asset as much as a debugging aid: it makes "the tool surface
- * changes with page state" legible without the viewer having to open the
- * site-tools popover and count.
+ * Shows which registration phase and capabilities are active.
  */
-function PhaseCard({ phase }: { phase: 0 | 1 | 2 | 3 }) {
-  const labels = [
-    'Empty workspace',
-    'Documents indexed',
-    'Matrix has shape',
-    'Human has scored',
-  ] as const;
-
-  const unlocks = [
-    'Add documents to unlock evidence search',
-    'Add an option and a criterion to unlock scoring proposals',
-    'Enter a score yourself to unlock challenges',
-    'All tools registered',
-  ] as const;
+function PhaseCard({ capabilities, phase }: { capabilities: Capabilities; phase: 0 | 1 | 2 | 3 }) {
+  const getStatusText = () => {
+    if (phase === 3) return 'All tools and inconsistency challenges unlocked';
+    if (capabilities.matrix && capabilities.documents) return 'Matrix & documents active · Add human score for challenges';
+    if (capabilities.matrix) return 'Matrix active · explain_ranking unlocked · Add documents for search';
+    if (capabilities.documents) return 'Documents indexed · Evidence search unlocked · Add matrix options';
+    return 'Add matrix options or drop documents to unlock tools';
+  };
 
   return (
     <div className="rounded-xl border border-neutral-200 bg-white p-4">
       <div className="flex items-baseline justify-between">
         <h2 className="text-sm font-semibold text-neutral-900">Registration phase</h2>
-        <span className="text-xs font-semibold tabular-nums text-neutral-900">{phase}</span>
+        <span className="text-xs font-semibold tabular-nums text-neutral-900">{phase} / 3</span>
       </div>
 
       <div className="mt-2.5 flex gap-1" aria-hidden>
@@ -97,8 +88,34 @@ function PhaseCard({ phase }: { phase: 0 | 1 | 2 | 3 }) {
         ))}
       </div>
 
-      <p className="mt-2.5 text-xs font-medium text-neutral-700">{labels[phase]}</p>
-      <p className="mt-1 text-xs leading-relaxed text-neutral-500">{unlocks[phase]}</p>
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        <span
+          className={[
+            'inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium',
+            capabilities.matrix ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-neutral-100 text-neutral-400',
+          ].join(' ')}
+        >
+          {capabilities.matrix ? '✓' : '○'} Matrix
+        </span>
+        <span
+          className={[
+            'inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium',
+            capabilities.documents ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-neutral-100 text-neutral-400',
+          ].join(' ')}
+        >
+          {capabilities.documents ? '✓' : '○'} Documents
+        </span>
+        <span
+          className={[
+            'inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium',
+            capabilities.humanScore ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-neutral-100 text-neutral-400',
+          ].join(' ')}
+        >
+          {capabilities.humanScore ? '✓' : '○'} Scored
+        </span>
+      </div>
+
+      <p className="mt-2 text-xs leading-relaxed text-neutral-600">{getStatusText()}</p>
     </div>
   );
 }
