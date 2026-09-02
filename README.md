@@ -307,38 +307,67 @@ account of what it did.
 
 ## Architecture
 
-![System architecture](docs/diagrams/01-system-architecture.svg)
+[![System architecture](docs/diagrams/01-system-architecture.svg)](docs/diagrams/01-system-architecture.svg)
 
-No application server, no database, no authentication, no upload endpoint.
+Everything runs in the browser. No application server, no database, no authentication, no upload endpoint.
 
-**The state the agent's tools mutate is the same object the UI renders.** Not
-synchronised copies — the same object. That is why the store is Zustand created
-at module scope rather than React Context: a tool's `execute()` runs from the
-WebMCP host, outside React, and cannot use hooks.
+### System Components
 
-Plaintext lives in exactly one field of the data model, `PageChunk.text`,
-referenced by exactly two modules — the search indexer and `readPage.ts` after a
-gate check. Keeping the surface that narrow is what makes the security test
-tractable.
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                           THE BROWSER TAB                               │
+│                                                                         │
+│  ① LOCAL DATA PLANE (Zero Egress)                                       │
+│  ┌──────────────────────┐  ┌─────────────────────┐  ┌────────────────┐  │
+│  │ PDF Parser (pdf.js)  │─▶│ 600-char sub-chunks │─▶│ MiniSearch     │  │
+│  │ Off-main-thread      │  │ in-memory only      │  │ storeFields:[] │  │
+│  └──────────────────────┘  └─────────────────────┘  └────────────────┘  │
+│                                                                         │
+│  ② THE SELECTIVE GATE (Security Kernel)                                 │
+│  ┌──────────────────────┐  ┌─────────────────────┐  ┌────────────────┐  │
+│  │ projectToMetadata    │  │ 5-State Seal Engine │  │ Approval Queue │  │
+│  │ Strips 100% text     │  │ sealed ➔ released   │  │ Single Release │  │
+│  └──────────────────────┘  └─────────────────────┘  └────────────────┘  │
+│                                                                         │
+│  ③ WEBMCP SURFACE (document.modelContext)                               │
+│  ┌───────────────────────────────────────────────────────────────────┐  │
+│  │ 10 Tools (A: Read-Only · B: Gated · C: Proposals & Challenges)    │  │
+│  │ Dynamic Capability-Gated Registration (documents / matrix / score)│  │
+│  └───────────────────────────────────────────────────────────────────┘  │
+│                                                                         │
+│  ④ CO-AUTHORED DECISION CORE (Zustand + Immer)                          │
+│  ┌──────────────────────┐  ┌─────────────────────┐  ┌────────────────┐  │
+│  │ Module-Level State   │─▶│ Scoring Engine      │─▶│ Decision Matrix│  │
+│  │ (No React Context)   │  │ Weighted FLIP Math  │  │ Ranking Board  │  │
+│  └──────────────────────┘  └─────────────────────┘  └────────────────┘  │
+└─────────────────────────────────────────────────────────────────────────┘
+```
 
-Full detail: **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** ·
-All 22 diagrams: **[docs/diagrams/](docs/diagrams/)**
+- **Shared Single Source of Truth**: The state the agent's tools mutate is **the exact same JavaScript object the UI renders**. The store is instantiated at module scope (`lib/store/index.ts`) rather than via React Context so that `tool.execute()` runs from the WebMCP host outside React without hooks, updating the matrix live as the user watches.
+- **Narrow Plaintext Attack Surface**: Document plaintext lives in exactly one field of the data model (`PageChunk.text`), referenced by only two modules: the search indexer and `readPage.ts` after strict gate approval.
+- **Fail-Closed Projections**: `locate_evidence` uses constructive metadata projections that assemble `documentId`, `page`, and `relevance` from scratch, rather than spreading and deleting fields.
+- **Strict Network Isolation**: Enforced by HTTP response header `Content-Security-Policy: default-src 'self'; connect-src 'self'`. No third-party network egress is structurally possible.
 
-### Stack
+Full architecture document: **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** · All 22 system diagrams: **[docs/diagrams/](docs/diagrams/)**
 
-`Next.js 15` · `TypeScript strict` · `Zustand + immer` · `pdf.js` ·
-`MiniSearch` · `Motion` · `Tailwind v4` · `Vitest` · `Vercel`
+### Tech Stack
 
-**No embeddings, deliberately.** A semantic index retrieves marginally better and
-needs a ~25MB model download that can stall on demo day. Over five documents
-BM25 is sufficient and always loads.
+| Layer | Technology | Rationale |
+|---|---|---|
+| **Framework** | Next.js 15 (App Router, Turbopack) | Static output, strict CSP headers |
+| **Language** | TypeScript (strict mode) | End-to-end type safety |
+| **Agent Interface** | WebMCP (`document.modelContext`) | In-tab tool registration & execution |
+| **State & Store** | Zustand v5 + Immer | Module-scope reactivity outside React hooks |
+| **Document Parsing** | `pdf.js` (Mozilla) | Client-side PDF text extraction in worker |
+| **Local Search** | `MiniSearch` (BM25) | Pure in-memory keyword indexing without models |
+| **Animation** | Motion (`motion/react`) | FLIP layout animations for ranking inversion |
+| **Styling** | Tailwind CSS v4 | Lightweight zero-runtime design tokens |
+| **Testing** | Vitest | 77 automated unit, gate, and security tests |
+| **Hosting** | Vercel | Edge-deployed static bundle with CSP |
 
-**pdf.js parses in its own worker, not one I wrote.** The original design called
-for a Web Worker; pdf.js already runs parsing off the main thread, and nesting
-workers adds a failure mode for no measured gain. Text assembly and chunking
-stay on the main thread with `await yieldToMain()` between pages — 89 pages
-ingest with no visible jank. The divergence is documented in
-`ARCHITECTURE.md §10` rather than quietly corrected.
+**Why no embeddings?** A semantic index requires downloading a ~25MB ONNX/transformers model into the browser, which can fail or stall on slow connections. Over confidential vendor documents, BM25 keyword matching is instant (2ms) and 100% reliable.
+
+**Worker threading design:** `pdf.js` already runs parsing off the main thread in its dedicated worker. Text assembly and chunking stay on the main thread with `await yieldToMain()` between pages — 89 pages ingest in ~50ms with zero jank.
 
 ---
 
