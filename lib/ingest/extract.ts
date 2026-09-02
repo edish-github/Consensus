@@ -41,21 +41,12 @@ function yieldToMain(): Promise<void> {
 let pdfjsPromise: Promise<typeof import('pdfjs-dist')> | null = null;
 
 /**
- * pdfjs-dist is ~1MB. Loading it on first drop rather than at page load keeps
- * the initial bundle small — the workspace has to be interactive immediately
- * when a judge opens the URL cold.
+ * pdfjs-dist legacy build is used for universal compatibility across standard browsers
+ * and embedded WebViews (like ChatGPT desktop app), avoiding module worker / blob URL bugs.
  */
 async function loadPdfjs() {
   if (!pdfjsPromise) {
-    pdfjsPromise = import('pdfjs-dist').then((lib) => {
-      // Served same-origin from /public so the CSP can stay at worker-src 'self'.
-      if (typeof window !== 'undefined') {
-        try {
-          lib.GlobalWorkerOptions.workerSrc = new URL('/pdf.worker.min.mjs', window.location.href).href;
-        } catch {
-          lib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
-        }
-      }
+    pdfjsPromise = (import('pdfjs-dist/legacy/build/pdf.mjs') as unknown as Promise<typeof import('pdfjs-dist')>).then((lib) => {
       return lib;
     });
   }
