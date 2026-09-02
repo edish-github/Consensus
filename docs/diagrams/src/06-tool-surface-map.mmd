@@ -1,42 +1,46 @@
 ---
-title: Tool Surface — 10 tools, 3 classes, disjoint verbs
+title: Tool Surface — 10 tools, 3 capability classes
 ---
 flowchart LR
 
   MC(["document.modelContext"])
 
-  subgraph A["CLASS A — read-only · readOnlyHint: true · no friction"]
-    A1["get_decision_state<br/>options · criteria · weights · scores<br/>ranking · gaps<br/><i>no document text</i>"]
-    A2["list_documents<br/>filenames · page counts<br/>option scoping · parse status<br/><i>no document text</i>"]
-    A3["locate_evidence ★<br/>query → doc · page · matchCount · relevance<br/><i>ZERO characters of source text</i><br/>note field teaches the protocol"]
-    A4["explain_ranking<br/>per-criterion contributions<br/>flipAnalysis: smallest weight change<br/>that inverts the top two"]
+  subgraph A["CLASS A · read-only · readOnlyHint: true · no friction"]
+    A1["<b>get_decision_state</b><br/>options · criteria · weights · scores<br/>ranking · gaps<br/><i>no document text</i>"]
+    A2["<b>list_documents</b><br/>filenames · page counts<br/>option scoping · parse status<br/><i>no document text</i>"]
+    A3["<b>locate_evidence</b> ★<br/>query → doc · page · matchCount · relevance<br/><i>ZERO characters of source text</i><br/>note field teaches the protocol"]
+    A4["<b>explain_ranking</b><br/>per-criterion contributions<br/>flipAnalysis: smallest weight change<br/>that inverts the top two"]
   end
 
-  subgraph B["CLASS B — gated · requires human release"]
-    B1["request_disclosure<br/>doc · page · reason<br/>non-blocking · rate-limited at 12 pending"]
-    B2["read_snippet<br/>untrustedContentHint: true<br/>≤1200 chars · delimited · hashed<br/>3 returns: text / REQUIRED / DENIED"]
+  subgraph B["CLASS B · gated · requires a human page release"]
+    B1["<b>request_disclosure</b><br/>doc · page · reason<br/>non-blocking · rate-limited at 12<br/>grants nothing — it is a knock"]
+    B2["<b>read_snippet</b><br/>untrustedContentHint: true<br/>≤1200 chars · delimited · hashed<br/>text / REQUIRED / DENIED"]
   end
 
-  subgraph C["CLASS C — proposal and annotation · never commits a value"]
-    C1["propose_criterion<br/>creates a card only"]
-    C2["propose_score<br/>value · rationale · evidenceRefs<br/>creates a card only"]
-    C3["attach_evidence<br/>cite an already-released page<br/>BOUNDARY_VIOLATION if sealed"]
-    C4["flag_inconsistency ★<br/>argue against a human score<br/>evidenceRefs + unreadRefs<br/><i>I have not read these. May I?</i>"]
+  subgraph C["CLASS C · proposal · can suggest and argue, never commits"]
+    C1["<b>propose_criterion</b><br/>creates a card only"]
+    C2["<b>propose_score</b><br/>value · rationale · evidenceRefs<br/>citations validated against the gate"]
+    C3["<b>attach_evidence</b><br/>cite an already-released page<br/>BOUNDARY_VIOLATION if sealed"]
+    C4["<b>flag_inconsistency</b> ★<br/>argue against a human score<br/>evidenceRefs + unreadRefs<br/><i>I have not read these. May I?</i>"]
   end
 
-  MC --> A
-  MC --> B
-  MC --> C
+  MC --> A & B & C
 
   A3 -.->|"agent learns where"| B1
-  B1 -.->|"human approves"| B2
-  B2 -.->|"now it can cite"| C3
-  B2 -.->|"now it can argue"| C4
+  B1 -.->|"HUMAN approves"| B2
+  B2 -.->|"now it may cite"| C2
+  B2 -.->|"now it may argue"| C4
+
+  ABSENT["<b>TOOLS THAT DELIBERATELY DO NOT EXIST</b><br/><br/>set_score · set_weight · add_option<br/>delete_option · finalize_decision · read_document<br/><br/>Their absence is the product. Asserted by<br/>evals/boundary.spec.ts and evals/security.spec.ts,<br/>which fail the build if any name appears."]
+
+  C -.-> ABSENT
 
   classDef read fill:#e0f5e6,stroke:#40a060,color:#000
   classDef gated fill:#dce8ff,stroke:#4070c0,stroke-width:2px,color:#000
   classDef prop fill:#fff2d9,stroke:#c08820,color:#000
+  classDef absent fill:#ffe0e0,stroke:#c04040,stroke-width:2px,stroke-dasharray:5 3,color:#000
 
   class A1,A2,A3,A4 read
   class B1,B2 gated
   class C1,C2,C3,C4 prop
+  class ABSENT absent

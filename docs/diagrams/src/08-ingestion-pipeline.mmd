@@ -1,34 +1,48 @@
 ---
-title: Ingestion — plaintext never leaves the worker boundary
+title: Ingestion — plaintext never leaves the tab
 ---
 flowchart TB
 
-  DROP["Human drops PDFs<br/>File API drop target"] --> BUF["ArrayBuffer<br/>main thread"]
-  BUF -->|"postMessage"| W
+  DROP["Human drops PDFs<br/>File API · no upload code path exists"] --> BUF["ArrayBuffer<br/>read via file.arrayBuffer()"]
 
-  subgraph W["PDF WEB WORKER — off the main thread so the UI stays smooth on camera"]
-    PDF["pdf.js getDocument"]
-    PAGE["per page: getTextContent"]
-    NORM["normalise<br/>whitespace · ligatures · hyphenation repair"]
-    CHUNK["chunk<br/>page chunks — the DISCLOSURE unit<br/>600-char sub-chunks, 80 overlap — the RETRIEVAL unit"]
-    PDF --> PAGE --> NORM --> CHUNK
+  BUF --> PDFJS
+
+  subgraph PDFJS["pdf.js — parsing runs in ITS OWN worker"]
+    direction TB
+    WORKER["pdf.worker.min.mjs<br/>served same-origin from /public<br/>so the CSP stays worker-src 'self'"]
+    PARSE["getDocument → getPage → getTextContent<br/>font handling, content-stream decoding"]
+    WORKER --- PARSE
   end
 
-  CHUNK -->|"postMessage: progress per page"| PROG["Progress bar<br/>visible during the demo"]
-  CHUNK --> STORE[("vaultSlice<br/>chunks in memory")]
-  STORE --> IDX["MiniSearch.addAll<br/>storeFields: documentId, page, subChunkId<br/><b>text is deliberately excluded</b>"]
-  IDX --> READY["document.status = ready<br/>→ phase 0 transitions to phase 1"]
+  PDFJS --> MAIN
 
-  BUF -.->|"released after parse<br/>shrinks the plaintext surface"| GC["discarded"]
+  subgraph MAIN["main thread — a few ms per page, yielding between pages"]
+    direction TB
+    NORM["normalise()<br/>ligatures · curly quotes<br/>hyphenation repair across line breaks"]
+    CHUNK["chunk()<br/>PAGE chunks — the disclosure unit<br/>600-char sub-chunks, 80 overlap — the retrieval unit"]
+    YIELD["await yieldToMain()<br/>lets the browser paint, so the drop<br/>animation and progress bars stay smooth"]
+    NORM --> CHUNK --> YIELD
+  end
 
-  EMPTY{{"page has no text layer?"}}
+  MAIN --> STORE[("vaultSlice.chunks<br/>in-memory plaintext")]
+  STORE --> IDX["MiniSearch.addAll<br/><b>storeFields excludes 'text'</b>"]
+  IDX --> READY["status = ready<br/>→ capability 'documents' satisfied<br/>→ three tools register"]
+
+  BUF -.->|"goes out of scope when<br/>extractDocument returns"| GONE["raw bytes discarded"]
+
+  EMPTY{{"page yielded no text?"}}
   NORM --> EMPTY
-  EMPTY -->|"yes"| FLAG["flagged as 'no extractable text'<br/>reported by list_documents<br/>so the agent does not search there<br/>OCR is explicitly out of scope"]
+  EMPTY -->|yes| FLAG["flagged 'no text layer'<br/>reported by list_documents<br/>so the agent does not search there<br/>OCR is explicitly out of scope"]
+
+  HONEST["<b>A note on threading.</b><br/>The architecture originally called for a worker we wrote.<br/>pdf.js already parses in its own worker; wrapping that in a<br/>second one means nesting workers for no measured gain and<br/>one more failure mode. What remains on the main thread is<br/>text assembly and chunking — milliseconds per page — and we<br/>yield between pages. 89 pages ingest with no visible jank.<br/><i>The honest answer beats a worker we did not need.</i>"]
+  MAIN -.-> HONEST
 
   classDef plaintext fill:#ffe0e0,stroke:#c04040,stroke-width:2px,color:#000
   classDef infra fill:#f0f0f0,stroke:#999,color:#000
   classDef ok fill:#e0f5e6,stroke:#40a060,color:#000
+  classDef note fill:#fff2d9,stroke:#c08820,color:#000
 
-  class DROP,BUF,PDF,PAGE,NORM,CHUNK,STORE,IDX plaintext
-  class PROG,GC,EMPTY,FLAG infra
+  class DROP,BUF,WORKER,PARSE,NORM,CHUNK,STORE,IDX plaintext
+  class YIELD,GONE,EMPTY,FLAG infra
   class READY ok
+  class HONEST note

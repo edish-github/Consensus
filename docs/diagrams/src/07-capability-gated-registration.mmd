@@ -1,0 +1,61 @@
+---
+title: Capability-Gated Tool Registration
+---
+flowchart TB
+
+  subgraph STATE["WORKSPACE STATE"]
+    direction LR
+    D["≥1 document indexed"]
+    M["≥1 option AND ≥1 criterion"]
+    H["≥1 score entered by the human"]
+  end
+
+  SEL["<b>selectCapabilities()</b><br/>{ documents, matrix, humanScore }<br/>memoised · recomputed only when the<br/>underlying slices change identity"]
+
+  STATE --> SEL
+
+  SEL --> REG["<b>syncRegistration(toolsFor(caps))</b><br/>diffs desired against registered<br/>· adds what is missing<br/>· removes what no longer qualifies<br/>· idempotent, so StrictMode is harmless"]
+
+  subgraph ALWAYS["requires: [ ] — always registered"]
+    T1["get_decision_state"]
+    T2["list_documents"]
+    T3["propose_criterion"]
+  end
+
+  subgraph DOCS["requires: ['documents']"]
+    T4["locate_evidence ★"]
+    T5["request_disclosure"]
+    T6["read_snippet"]
+  end
+
+  subgraph MATRIX["requires: ['matrix']"]
+    T7["explain_ranking"]
+    T8["propose_score"]
+    T9["attach_evidence"]
+  end
+
+  subgraph BOTH["requires: ['matrix','humanScore']"]
+    T10["flag_inconsistency ★"]
+  end
+
+  REG --> ALWAYS
+  REG --> DOCS
+  REG --> MATRIX
+  REG --> BOTH
+
+  NOTE["<b>Why capabilities, not phases.</b><br/>A linear 0→3 sequence cannot express<br/>'matrix but no documents' or the reverse.<br/>Every branch required documents, so a fully<br/>populated matrix sat at phase 0 with one tool.<br/><br/>Each tool now declares what it actually needs."]
+
+  REV["<b>Reversible by construction.</b><br/>Delete every document and `documents`<br/>goes false. The registry diffs against the<br/>smaller set and unregisters the three<br/>document tools. No ghost tools survive."]
+
+  SEL -.-> NOTE
+  REG -.-> REV
+
+  classDef state fill:#ece0ff,stroke:#8050c0,color:#000
+  classDef engine fill:#dce8ff,stroke:#4070c0,stroke-width:2px,color:#000
+  classDef tool fill:#e0f5e6,stroke:#40a060,color:#000
+  classDef note fill:#fff2d9,stroke:#c08820,color:#000
+
+  class D,M,H state
+  class SEL,REG engine
+  class T1,T2,T3,T4,T5,T6,T7,T8,T9,T10 tool
+  class NOTE,REV note
