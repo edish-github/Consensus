@@ -1,29 +1,27 @@
 import { getModelContext, registerWithDisposer } from './client';
 import { err, toToolResponse } from './envelope';
 import { recordToolCall } from './activity';
-import type { AnyToolDefinition, ToolPhase, ToolResult } from './types';
+import type { AnyToolDefinition, CapabilityKey, ToolClass, ToolResult } from './types';
 import type { WebMCPToolResponse } from '@/types/webmcp';
 
 /**
  * Registration orchestration.
  *
  * Three problems this file solves, all of which produce demo-day failures if
- * you solve them naively:
+ * solved naively:
  *
- *  1. GHOST TOOLS. A tool registered against a view that no longer exists.
- *     The agent calls it, it operates on stale state, and the human sees
- *     nothing happen. Fixed by deriving the desired tool set from page state
- *     and diffing on every change.
+ *  1. GHOST TOOLS. A tool registered against a view that no longer exists. The
+ *     agent calls it, it operates on stale state, and the human sees nothing
+ *     happen. Fixed by deriving the desired set from page state and diffing on
+ *     every change — including downward, which is the half most entrants skip.
  *
  *  2. DOUBLE REGISTRATION. React StrictMode invokes effects twice in
- *     development. A registry that blindly registers ends up with two copies
- *     of every tool and an agent that sees duplicates. Fixed by keying on
- *     tool name and making sync() idempotent.
+ *     development. A registry that blindly registers ends up with two copies of
+ *     every tool. Fixed by keying on tool name and making sync() idempotent.
  *
- *  3. TEARDOWN DURING EXECUTION. A phase change can unregister a tool while
- *     one of its executes is still in flight. Each registration owns an
- *     AbortController; the signal is passed to execute so long work can bail.
- *     Chrome 153+ makes the unregister itself safe mid-execution.
+ *  3. TEARDOWN DURING EXECUTION. A capability change can unregister a tool
+ *     while one of its executes is in flight. Each registration owns an
+ *     AbortController; the signal reaches execute so long work can bail.
  */
 
 interface RegisteredEntry {
@@ -40,16 +38,13 @@ let epoch = 0;
  * Subscribable snapshot — powers ToolSurfacePanel                     *
  * ------------------------------------------------------------------ */
 
-import type { CapabilityKey } from './types';
-
 export interface RegisteredToolView {
   name: string;
   description: string;
-  klass: 'A' | 'B' | 'C';
+  klass: ToolClass;
   readOnly: boolean;
   gated: boolean;
   requires: CapabilityKey[];
-  minPhase?: ToolPhase;
 }
 
 let snapshot: RegisteredToolView[] = [];
@@ -63,8 +58,7 @@ function publish(): void {
       klass: e.def.klass,
       readOnly: e.def.annotations?.readOnlyHint === true,
       gated: e.def.gated === true,
-      requires: e.def.requires ?? [],
-      minPhase: e.def.minPhase,
+      requires: e.def.requires,
     }))
     .sort((a, b) => a.klass.localeCompare(b.klass) || a.name.localeCompare(b.name));
   for (const l of listeners) l();
@@ -87,16 +81,17 @@ export function subscribeRegistry(listener: () => void): () => void {
 }
 
 /* ------------------------------------------------------------------ *
- * execute wrapper — validation, timing, logging, error containment    *
+ * execute wrapper                                                     *
  * ------------------------------------------------------------------ */
 
 /**
- * Cross-cutting concerns live here so no individual tool has to remember them.
+ * Cross-cutting concerns in one place, so no individual tool has to remember
+ * them.
  *
  * The critical guarantee: this never rejects. A tool that throws produces a
- * structured INTERNAL envelope. An agent that receives a rejected promise
- * gets an opaque transport failure and typically retries blindly or invents
- * a result; an agent that receives `{ok:false, code, hint}` self-corrects.
+ * structured INTERNAL envelope. An agent that receives a rejected promise sees
+ * an opaque transport failure and typically retries blindly or invents a
+ * result; an agent that receives {ok:false, code, hint} self-corrects.
  */
 function wrapExecute(
   def: AnyToolDefinition,
@@ -104,15 +99,12 @@ function wrapExecute(
 ): (input: unknown, options?: { signal?: AbortSignal }) => Promise<WebMCPToolResponse> {
   return async (input: unknown, options): Promise<WebMCPToolResponse> => {
     const started = performance.now();
-    // Prefer the host's signal when it supplies one; fall back to ours.
     const ctx = { signal: options?.signal ?? signal };
 
     let result: ToolResult<unknown>;
     try {
       result = await def.execute(input ?? {}, ctx);
     } catch (e) {
-      // Never let a raw exception reach the agent, and never let an exception
-      // message carry document text — envelope.err() truncates.
       const message = e instanceof Error ? e.message : 'Unknown error';
       result = err('INTERNAL', message, {
         hint: 'This tool failed unexpectedly. Try a different approach or tell the user.',
@@ -150,9 +142,10 @@ export function syncRegistration(desired: AnyToolDefinition[]): void {
   const ctx = getModelContext();
   if (!ctx) return;
 
-  const wanted = new Map(desired.map((d) => [d.name, d]));
+  const wanted = new Set(desired.map((d) => d.name));
 
-  // Remove anything no longer wanted.
+  // Remove anything no longer wanted. This branch is the reverse transition —
+  // delete every document and locate_evidence disappears from the agent's list.
   for (const [name, entry] of registered) {
     if (!wanted.has(name)) {
       entry.controller.abort();
@@ -161,7 +154,7 @@ export function syncRegistration(desired: AnyToolDefinition[]): void {
     }
   }
 
-  // Add anything missing. Existing entries are left alone — re-registering an
+  // Add anything missing. Existing entries are left alone: re-registering an
   // identical tool would churn the agent's tool list for no reason.
   for (const def of desired) {
     if (registered.has(def.name)) continue;

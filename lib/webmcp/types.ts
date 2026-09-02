@@ -3,28 +3,35 @@
  *
  * Design note that matters for testability: a tool's `execute` returns our
  * domain envelope (`ToolResult`), NOT the WebMCP content-block shape. The
- * registry's wrapExecute() does that translation. This means evals/tools.spec.ts
- * can call execute() directly and assert on a plain object, with no browser,
- * no agent, and no serialisation in the way.
+ * registry's wrapExecute() does that translation. This means evals can call
+ * execute() directly and assert on a plain object — no browser, no agent, no
+ * serialisation in the way.
  */
 
 /**
- * Registration phase. Tools appear and disappear as the workspace changes
- * state, so the agent is only ever offered actions that currently make sense.
+ * What a tool needs in order to make sense.
  *
- *   0  empty workspace
- *   1  at least one document indexed
- *   2  matrix has at least one option and one criterion
- *   3  the human has entered at least one score by hand
+ * Registration is gated on capabilities rather than sequenced through phases,
+ * because a linear order cannot express the real states. A workspace can have
+ * a matrix and no documents (explain_ranking applies, locate_evidence does
+ * not) or documents and no matrix (the reverse). Forcing those onto one axis
+ * means one of them is always wrong.
  *
- * Phases are cumulative and reversible. Remove the documents and the
- * disclosure tools unregister. See lib/webmcp/phases.ts (Block 2).
+ *   documents   at least one indexed document
+ *   matrix      at least one option AND one criterion
+ *   humanScore  a human has entered a judgement there is something to argue with
  */
-export type ToolPhase = 0 | 1 | 2 | 3;
+export interface Capabilities {
+  documents: boolean;
+  matrix: boolean;
+  humanScore: boolean;
+}
+
+export type CapabilityKey = keyof Capabilities;
 
 /**
- * Capability class. Surfaced to the human in ToolSurfacePanel and to the
- * agent through annotations.
+ * Capability class. Shown to the human in ToolSurfacePanel and to the agent
+ * through annotations.
  *
  *   A  read-only, no friction
  *   B  gated, requires a human page release
@@ -58,8 +65,6 @@ export interface ExecuteContext {
   signal?: AbortSignal;
 }
 
-export type CapabilityKey = 'documents' | 'matrix' | 'humanScore';
-
 export interface ToolDefinition<TInput = unknown, TOutput = unknown> {
   name: string;
   /** ≤500 chars — Chrome's published budget. Linted by evals/descriptions.spec.ts. */
@@ -70,17 +75,13 @@ export interface ToolDefinition<TInput = unknown, TOutput = unknown> {
     untrustedContentHint?: boolean;
     title?: string;
   };
-  /** Capabilities required for this tool to be registered. */
+  /** Capabilities that must all be satisfied for this tool to be registered. */
   requires: CapabilityKey[];
-  /** Lowest phase at which this tool is registered (legacy/progress indicator). */
-  minPhase?: ToolPhase;
   klass: ToolClass;
   /** True when the human must approve something before this can succeed. */
   gated?: boolean;
   execute: (input: TInput, ctx: ExecuteContext) => Promise<ToolResult<TOutput>>;
 }
 
-/** Convenience alias for the heterogeneous array in tools/index.ts. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AnyToolDefinition = ToolDefinition<any, any>;
-

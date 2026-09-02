@@ -48,7 +48,6 @@ export const readSnippet: ToolDefinition<Input, Output> = {
   name: 'read_snippet',
   description: DESCRIPTIONS.read_snippet,
   requires: ['documents'],
-  minPhase: 1,
   klass: 'B',
   gated: true,
   annotations: { untrustedContentHint: true, title: 'Read a released page' },
