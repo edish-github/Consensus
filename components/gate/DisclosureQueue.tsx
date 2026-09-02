@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import { AnimatePresence } from 'motion/react';
 import { useConsensusStore } from '@/lib/store';
 import { DisclosureRequestCard } from './DisclosureRequestCard';
@@ -20,17 +21,28 @@ import { DisclosureRequestCard } from './DisclosureRequestCard';
 export function DisclosureQueue() {
   const requests = useConsensusStore((s) => s.requests);
   const pending = requests.filter((r) => r.state === 'requested');
+  const count = pending.length;
+  const ref = useRef<HTMLElement>(null);
 
-  if (pending.length === 0) return null;
+  // A permission request the human never sees is a permission request that
+  // silently fails. The agent has stopped and is waiting; make that visible
+  // wherever they happen to be scrolled.
+  useEffect(() => {
+    if (count > 0) {
+      ref.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [count]);
+
+  if (count === 0) return null;
 
   return (
-    <section className="rounded-xl border-2 border-blue-300 bg-white p-4">
+    <section ref={ref} className="sticky top-4 z-20 rounded-xl border-2 border-blue-400 bg-white p-4 shadow-lg ring-4 ring-blue-50">
       <div className="mb-3 flex items-baseline justify-between">
         <h2 className="text-sm font-semibold text-neutral-900">
           Your agent is asking for permission
         </h2>
-        <span className="text-[11px] text-neutral-500">
-          {pending.length} pending
+        <span className="text-[11px] font-medium text-blue-600">
+          {count} pending
         </span>
       </div>
 
