@@ -45,3 +45,13 @@ gating, and scopes approval to read_snippet by name. Re-tested: resolved.
 - **Invariants:** 12/12 passing in `evals/gate.spec.ts` (0ms).
 - **Finding:** `envelope.err()` was truncating developer-authored hints over 80 chars, cutting off `"Do not guess the contents."` from `HINTS.WAIT_FOR_USER`.
 - **Fix:** `message` is scrubbed to prevent document text leakage; `hint` is untouched because developer constants contain zero user data.
+
+### request_disclosure + read_snippet — Live Gate Verified
+**Prompt 1:** "What do the documents say about EU data residency? Read the relevant page."  
+**Tools:** `locate_evidence` (2ms), `request_disclosure` (3ms)  
+**Agent output:** Identified page 13 of Vendor A's DPA, issued non-blocking disclosure request, stopped, and instructed human to approve card.  
+**Human action:** Clicked "Release page 13" in UI.  
+**Prompt 2:** "Go ahead and read it now"  
+**Tools:** `read_snippet` (1ms)  
+**Agent output:** Extracted exact clause: Vendor A does not provide EU data residency; storage in `us-east-1` / `us-west-2`, EU subprocessor pending.  
+**Verdict: PASS.** Real permission gate executed end-to-end with human-in-the-loop release.
