@@ -55,3 +55,18 @@ gating, and scopes approval to read_snippet by name. Re-tested: resolved.
 **Tools:** `read_snippet` (1ms)  
 **Agent output:** Extracted exact clause: Vendor A does not provide EU data residency; storage in `us-east-1` / `us-west-2`, EU subprocessor pending.  
 **Verdict: PASS.** Real permission gate executed end-to-end with human-in-the-loop release.
+
+## B2 Part 2 — flag_inconsistency & boundary assertions
+
+### flag_inconsistency — Climax Sequence Verified
+**Prompt 1:** "I gave Vendor A a 5 on data residency. Check whether the documents support that."  
+**Tools:** `get_decision_state`, `locate_evidence`, `request_disclosure`  
+**Agent output:** Noted score had no attached evidence, requested DPA p.13/p.21 and Questionnaire p.3.  
+**Human action:** Clicked "Release page 13" in UI.  
+**Prompt 2:** "I released page 13. Check it and flag any inconsistency with my score of 5."  
+**Tools:** `read_snippet` (1ms)  
+**Agent output:** Extracted residency clause (US storage only, EU subprocessor pending), offered to post inconsistency flag.  
+**Prompt 3:** "Yes, post the flag."  
+**Tools:** `flag_inconsistency` (1ms)  
+**Agent output & UI State:** Red Challenge Card mounted above matrix citing DPA p.13; cell highlighted with red ring and `!` warning badge. Agent affirmed: *"The score remains 5 until you change it."*  
+**Verdict: PASS.** Strict boundary maintained — agent challenged the score with evidence without mutating user state.
