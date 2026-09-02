@@ -7,7 +7,7 @@ PDFs in — they are parsed in your browser and never uploaded. Your ChatGPT
 agent can search them and tell you *where* the answers are, but it cannot read
 a single page without your explicit release.
 
-> **Don't take our word for it.** Open the app, open DevTools → Network, drop one of your own confidential PDFs in, and watch the request count stay at zero.
+> **To verify it :** Open the app, open DevTools → Network, drop one of your own confidential PDFs in, and watch the request count stay at zero.
 
 **[▶ Live demo](https://consensus-henna.vercel.app/d/demo)** ·
 **[▶ 3-minute video](VIDEO_URL)** ·
@@ -18,9 +18,10 @@ a single page without your explicit release.
 ## The problem
 
 Structured, high-stakes comparisons run on material you are not allowed to
-upload. Vendor selection runs on NDA'd SOC 2 reports, DPAs and pricing sheets.
-Hiring panels run on candidate work samples. M&A diligence runs on data-room
-exports.
+upload. SOC 2 Type II reports are distributed under NDA and explicitly restricted from
+redistribution. DPAs and penetration-test reports carry similar terms. That is
+a contractual fact, not a statistic, and it splits high-stakes decision work
+badly.
 
 Two things are true at once, and they conflict:
 
@@ -29,13 +30,12 @@ Two things are true at once, and they conflict:
 retrieval. People are slow and inconsistent at it, and they skim.
 
 **It is exactly the work people refuse to give an AI.** You cannot upload a
-counterparty's security report to a SaaS tool. The NDA usually forbids it, legal
+counterparty's security report to a SaaS tool. The NDA usually forbids it, legal guidelines
 will not allow it, and the person doing the evaluation knows this.
 
-So the decision gets made without the AI, from memory, at 11pm, in a
-spreadsheet nobody can reconstruct six months later.
 
-Consensus removes the choice.
+**And that's exactly the problem we are trying to solve with Consensus.**
+
 
 ---
 
@@ -138,6 +138,41 @@ appears.
 
 ---
 
+## Find without read
+
+![Find without read](docs/diagrams/04-find-without-read-sequence.svg)
+
+```jsonc
+{
+  "query": "EU subprocessor data residency",
+  "matches": [
+    { "documentId": "d_7fK2", "filename": "vendor-a-dpa.pdf", "page": 13,
+      "matchCount": 3, "relevance": 1.0, "sealState": "sealed" }
+  ],
+  "note": "Text withheld by design. These are locations only. To read a page,
+           call request_disclosure with a reason; the user approves or denies
+           that specific page. Do not guess the contents."
+}
+```
+
+Two independent barriers, because either alone would be a single point of
+failure.
+
+**The index cannot store text.** MiniSearch is configured with `storeFields`
+excluding `text`, so a search result has no text field at all — not a truncated
+one, not an empty one. A careless `{...hit}` in a future refactor cannot leak
+content, because there is nothing to spread.
+
+**The projection constructs, never spreads.** `projectToMetadata` builds its
+output field by field rather than copying a hit and deleting what it shouldn't
+return. Deletion-based sanitising fails open; construction fails closed.
+
+The `note` field changed agent behaviour more than any amount of tuning the tool
+*description* did — the description is read once when the tool list is
+assembled, the result is read at the moment the agent decides what to do next.
+
+---
+
 ## The disclosure gate
 
 [![Disclosure gate](docs/diagrams/03-disclosure-gate-state-machine.svg)](docs/diagrams/03-disclosure-gate-state-machine.svg)
@@ -164,53 +199,68 @@ appears, you read it.
 Full model: **[docs/SECURITY.md](docs/SECURITY.md)**
 
 ---
+## The agent's only power is persuasion
 
-## Find without read
+![The challenge](docs/diagrams/11-challenge-climax-sequence.svg)
 
-![Find without read](docs/diagrams/04-find-without-read-sequence.svg)
+`flag_inconsistency` lets the agent argue against a score **you** entered. It
+cannot change it.
 
-`locate_evidence` answers *where the answer is* without answering *what it says*.
+One field on that tool is the most interesting thing in the project. Most agent
+tools let a model assert what it has verified; this one also lets it point at
+pages it has **located but not been permitted to read**, in a field called
+`unreadRefs`, rendered to the human as:
 
-```jsonc
-{
-  "query": "EU subprocessor data residency",
-  "matches": [
-    { "documentId": "d_7fK2", "filename": "vendor-a-dpa.pdf", "page": 13,
-      "matchCount": 3, "relevance": 1.0, "sealState": "sealed" }
-  ],
-  "note": "Text withheld by design. These are locations only. To read a page,
-           call request_disclosure with a reason; the user approves or denies
-           that specific page. Do not guess the contents."
-}
-```
+> *"I have not read these. May I?"*
 
-Two independent barriers make this true:
+The agent can say: your score looks wrong, here is where the evidence probably
+is, and I am telling you I have not seen it. An agent that admits the limits of
+what it knows while still making the case is more useful — and considerably more
+trustworthy — than one that either stays silent or guesses.
 
-**The index cannot store text.** MiniSearch is configured with `storeFields`
-that exclude `text`, so a search result has no text field at all — not a
-truncated one, not an empty one. A careless `{...hit}` in a future refactor
-cannot leak content because there is nothing to spread.
+Each unread page becomes a real pending disclosure request, so the human can
+release it from the card in one gesture.
 
-**The projection constructs, never spreads.** `projectToMetadata` builds its
-output field by field rather than copying a hit and deleting what it does not
-want. Deletion-based sanitising fails open — add a field upstream and it leaks
-silently. Construction fails closed.
+### What that looks like against the real corpus
+
+| Step | State |
+|---|---|
+| Demo loaded | #1 Vendor C 100% · #2 Vendor A 93% · #3 Vendor B 83% |
+| I score Vendor A **5/5** on data residency, no source | A holds #2 at 93% |
+| Agent locates DPA p.13, Annex C p.21, questionnaire p.3 — **reads none of them** | Challenge card mounts, cell rings red |
+| I release **page 13**. Agent reads it and restates its case with the citation | Score unchanged |
+| I drop the score to **2** | **#2 Vendor B 83% ▲ · #3 Vendor A 78% ▼** |
+| I drag the data-residency weight 2 → 5 | Vendor A falls to **58%** |
+
+The agent's own words, unprompted: *"The score remains 5 until you change it."*
 
 ---
+
 
 ## Capability-gated registration
 
 ![Capability gating](docs/diagrams/07-capability-gated-registration.svg)
 
-Each tool declares the capabilities it needs. The registry diffs the desired set
-against the registered set on every change — **in both directions**.
+Tools declare what they need:
+
+```ts
+requires: ['matrix', 'humanScore']   // flag_inconsistency
+```
+
+`selectCapabilities` derives `{ documents, matrix, humanScore }` from store
+state, and the registry diffs the desired set against the registered set on
+every change — **in both directions.**
 
 Delete every document and `locate_evidence`, `request_disclosure` and
-`read_snippet` unregister. The agent's tool list shrinks in front of you.
+`read_snippet` unregister. The agent's tool list shrinks in front of you. That
+downward branch is the half most implementations skip, and it is tested.
 
-Registration is idempotent, refcounted, and holds an `AbortController` per tool,
-so React StrictMode's double-invoke produces exactly one registration and a
+Registration is idempotent and refcounted with an `AbortController` per tool, so
+React StrictMode's double-invoke produces exactly one registration and a
 capability change cannot tear down a tool mid-execution.
+
+*(This replaced a linear phase model that could not express "matrix but no
+documents" — see [docs/DECISIONS.md](docs/DECISIONS.md).)*
 
 ---
 
@@ -225,22 +275,31 @@ npm test
 | Suite | Tests | Covers |
 |---|---:|---|
 | `security.spec.ts` | 14 | 603 shingles × 20 queries — zero source text in `locate_evidence` output |
-| `boundary.spec.ts` | 17 | Proposals never commit; citations validated; the absent tools stay absent |
+| `boundary.spec.ts` | 17 | Proposals never commit; citations validated; absent tools stay absent |
 | `descriptions.spec.ts` | 34 | Chrome metadata budgets, schema closure, description-overlap lint |
 | `gate.spec.ts` | 12 | The full disclosure state machine and error envelope |
 
-### The suite was verified by breaking it
+### The security suite was verified by breaking it
 
-A security test that has never failed is decoration. We introduced the realistic
-version of the mistake — a `preview` field on the projection, populated from the
-matched chunk. **Three tests failed at once.** Reverted; all 14 pass.
+A security test that has never failed is decoration.
 
-Instructions to reproduce are in [`evals/RESULTS.md`](evals/RESULTS.md), which
-also documents three real bugs these suites caught, and a §5 stating plainly
-what the results do not cover.
+I introduced the realistic version of the mistake — a `preview` field on the
+projection, populated from the matched chunk. **Three tests failed
+simultaneously.** Reverted; all 14 pass.
+
+Reproduce it in two minutes: add a text field to the returned object in
+`lib/search/project.ts` and run `npm test`.
+
+### Three bugs these suites caught
+
+Documented with their fixes in [`evals/RESULTS.md`](evals/RESULTS.md):
+
+1. **`envelope.err()` was truncating my own hints.** `HINTS.WAIT_FOR_USER` is 123 characters and ends with "Do not guess the contents." The 80-character scrub was cutting it off. The agent behaved well anyway, which is why only a test asserting on exact strings would ever find it.
+2. **Gating language bled across the tool set.** One run refused to call `locate_evidence`, claiming it "requires permission." It doesn't. The description-overlap lint now guards this class.
+3. **A page cannot assume it is the agent's only source of truth.** Three of eight manual runs were void — inside a project-scoped ChatGPT conversation, the agent answered from workspace files and never called a tool.
 
 There is also a **13-prompt manual protocol** in
-[`evals/prompts.md`](evals/prompts.md), run against the real agent with the
+[`evals/prompts.md`](evals/prompts.md), run against the live agent with the
 on-page Tool calls panel as the pass/fail signal rather than the agent's own
 account of what it did.
 
@@ -250,17 +309,15 @@ account of what it did.
 
 ![System architecture](docs/diagrams/01-system-architecture.svg)
 
-Everything runs in the browser. No application server, no database, no
-authentication, no upload endpoint.
+No application server, no database, no authentication, no upload endpoint.
 
-The state the agent's tools mutate is **the same object the UI renders** — which
-is why the store is Zustand created at module scope rather than React Context: a
-tool's `execute()` runs from the WebMCP host, outside React, and cannot use
-hooks. That single constraint is what makes "the human and the agent are looking
-at one artifact" literally true rather than aspirational.
+**The state the agent's tools mutate is the same object the UI renders.** Not
+synchronised copies — the same object. That is why the store is Zustand created
+at module scope rather than React Context: a tool's `execute()` runs from the
+WebMCP host, outside React, and cannot use hooks.
 
 Plaintext lives in exactly one field of the data model, `PageChunk.text`,
-referenced by exactly two modules: the search indexer, and `readPage.ts` after a
+referenced by exactly two modules — the search indexer and `readPage.ts` after a
 gate check. Keeping the surface that narrow is what makes the security test
 tractable.
 
@@ -270,11 +327,18 @@ All 22 diagrams: **[docs/diagrams/](docs/diagrams/)**
 ### Stack
 
 `Next.js 15` · `TypeScript strict` · `Zustand + immer` · `pdf.js` ·
-`MiniSearch` · `Motion` · `Tailwind v4` · `Vitest` · deployed on `Vercel`
+`MiniSearch` · `Motion` · `Tailwind v4` · `Vitest` · `Vercel`
 
-No embeddings, by design. A semantic index would retrieve marginally better and
-requires a ~25MB model download that can stall on demo day. Over a corpus of
-five documents, BM25 is sufficient and always loads.
+**No embeddings, deliberately.** A semantic index retrieves marginally better and
+needs a ~25MB model download that can stall on demo day. Over five documents
+BM25 is sufficient and always loads.
+
+**pdf.js parses in its own worker, not one I wrote.** The original design called
+for a Web Worker; pdf.js already runs parsing off the main thread, and nesting
+workers adds a failure mode for no measured gain. Text assembly and chunking
+stay on the main thread with `await yieldToMain()` between pages — 89 pages
+ingest with no visible jank. The divergence is documented in
+`ARCHITECTURE.md §10` rather than quietly corrected.
 
 ---
 
@@ -293,20 +357,28 @@ With no agent present you get an amber banner and an empty tool list — **that 
 correct**. Consensus is a perfectly good human decision tool on its own; the
 agent adds to it rather than being it.
 
-To see the tools:
+### To see the tools
 
-- **ChatGPT desktop app** → built-in browser → ChatGPT Work or Codex mode → GPT-5.6 Sol or Terra (Luna has WebMCP disabled) → Settings → Browser → Permissions → **Enable site tools**
-- **Chrome 146+** → `chrome://flags/#enable-webmcp-testing` → restart
+**ChatGPT desktop** → built-in browser → Work or Codex mode → GPT-5.6 Sol or
+Terra (Luna has WebMCP disabled) → Settings → Browser → Permissions → **Enable
+site tools**
 
-Then **Load demo scenario** and **Load sample corpus**, and ask:
+**Chrome 146+** → `chrome://flags/#enable-webmcp-testing` → restart
 
-> What do my documents say about SOC 2 availability exceptions?
+Then use the suggested prompts on the page — each has a copy button:
+
+| Prompt | What to watch |
+|---|---|
+| *Where do these documents talk about EU data residency?* | `locate_evidence` runs across 89 pages and returns page pointers with zero text |
+| *What do the documents say about EU data residency? Read the relevant page.* | The agent requests permission. Release page 13 and it extracts the pending subprocessor clause. |
+| *Check my data residency score against the documents and flag it if it is inconsistent.* | It disagrees with you, and cannot change the score |
 
 ### Sample corpus
 
-`public/sample/` holds five synthetic documents — 89 pages. Every company,
-date, figure and finding is invented; see
-[`public/sample/README.md`](public/sample/README.md).
+`public/sample/` holds five synthetic documents — 89 pages. Every company, date,
+figure and finding is invented; see
+[`public/sample/README.md`](public/sample/README.md), which also documents the
+two planted passages and their page numbers.
 
 They exist because the product's premise is documents you cannot upload, which
 means the demo cannot use real ones either.
@@ -317,9 +389,9 @@ means the demo cannot use real ones either.
 
 | Environment | Version | Result |
 |---|---|---|
-| ChatGPT desktop built-in browser | GPT-5.6 Terra (High and Medium) | ✅ 10 tools discovered, full flow |
-| Chrome | 146+ with `#enable-webmcp-testing` | ✅ tools registered |
-| Chrome, no flag | — | ✅ app works, agent panels hidden |
+| ChatGPT desktop built-in browser | GPT-5.6 Terra (High and Medium) | 10 tools discovered, full flow |
+| Chrome | 146+ with `#enable-webmcp-testing` | tools registered |
+| Chrome, no flag | — | app works, agent panels hidden |
 
 WebMCP is a W3C Web Machine Learning Community Group draft, not a ratified
 standard, and the surface moved during 2026 (`window.agent` →
