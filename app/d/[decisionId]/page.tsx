@@ -1,10 +1,14 @@
 'use client';
 
+import { useState } from 'react';
 import { WebMCPProvider } from '@/components/agent/WebMCPProvider';
 import { ToolSurfacePanel } from '@/components/agent/ToolSurfacePanel';
 import { DecisionMatrix } from '@/components/matrix/DecisionMatrix';
 import { RankingBoard } from '@/components/matrix/RankingBoard';
 import { EvidenceVault } from '@/components/evidence/EvidenceVault';
+import { DisclosureQueue } from '@/components/gate/DisclosureQueue';
+import { DisclosureLedger } from '@/components/gate/DisclosureLedger';
+import { SealIndicator } from '@/components/gate/SealIndicator';
 import { useConsensusStore } from '@/lib/store';
 import { selectCapabilities, type Capabilities } from '@/lib/store/selectors';
 
@@ -15,13 +19,15 @@ import { selectCapabilities, type Capabilities } from '@/lib/store/selectors';
  * ChatGPT's built-in browser does not discover tools registered inside
  * iframes, so a stray wrapper here silently removes every tool.
  *
- * BATCH 3: matrix, ranking, evidence vault, capability-gated registration.
- * The disclosure gate, proposal queue and challenge card land in B2.
+ * BATCH 4: the disclosure gate is live. The approval queue sits above the
+ * matrix rather than in the sidebar, because a pending request is the one
+ * thing on screen genuinely waiting on the human — it should interrupt.
  */
 export default function WorkspacePage() {
   const capabilities = useConsensusStore(selectCapabilities);
   const title = useConsensusStore((s) => s.decisionTitle);
   const setTitle = useConsensusStore((s) => s.setDecisionTitle);
+  const [ledgerOpen, setLedgerOpen] = useState(false);
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-8">
@@ -43,6 +49,7 @@ export default function WorkspacePage() {
       <WebMCPProvider capabilities={capabilities}>
         <div className="mt-5 grid gap-5 lg:grid-cols-[1fr_320px]">
           <div className="space-y-5">
+            <DisclosureQueue />
             <DecisionMatrix />
             <ToolSurfacePanel />
           </div>
@@ -50,6 +57,8 @@ export default function WorkspacePage() {
           <div className="space-y-5">
             <RankingBoard />
             <EvidenceVault />
+            <SealIndicator onClick={() => setLedgerOpen((v) => !v)} />
+            {ledgerOpen && <DisclosureLedger />}
             <CapabilityCard capabilities={capabilities} />
           </div>
         </div>
@@ -58,13 +67,6 @@ export default function WorkspacePage() {
   );
 }
 
-/**
- * Which capabilities are satisfied, and what each one unlocks.
- *
- * A demo asset as much as a debugging aid: it makes "the tool surface changes
- * with page state" legible without the viewer opening the site-tools popover
- * and counting.
- */
 function CapabilityCard({ capabilities }: { capabilities: Capabilities }) {
   const items = [
     { key: 'matrix' as const, label: 'Matrix', unlocks: 'explain_ranking, scoring proposals' },

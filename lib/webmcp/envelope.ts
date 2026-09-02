@@ -22,7 +22,8 @@ export function err(
     ok: false,
     code,
     message: scrub(message),
-    hint: opts.hint ? scrub(opts.hint) : undefined,
+    // NOT scrubbed. See the note on scrub() below.
+    hint: opts.hint,
     retryable: opts.retryable ?? false,
   };
 }
@@ -30,10 +31,22 @@ export function err(
 /**
  * SECURITY: error paths must never become a content leak.
  *
- * A caught exception can carry a chunk of document text in its message
- * (a parse error quoting the input, a validation error echoing a value).
- * Anything longer than MAX_ERROR_STRING is truncated before it can reach
- * the agent's context.
+ * A caught exception can carry a chunk of document text in its `message` — a
+ * parse error quoting its input, a validation error echoing a value. Anything
+ * longer than MAX_ERROR_STRING is truncated before it can reach the agent.
+ *
+ * ⚠ `hint` is deliberately NOT scrubbed.
+ *
+ * Hints are developer-authored constants from the HINTS table below. They
+ * never contain user data, and they are the behavioural steering that makes
+ * the agent wait rather than fabricate — "Do not guess the contents" sits at
+ * the END of the longest hint, which the 80-character cap was silently
+ * removing. An agent that receives half a hint is an agent that received the
+ * setup without the instruction.
+ *
+ * The rule is therefore: scrub anything that could carry document text
+ * (messages, exception strings), never scrub anything we wrote ourselves.
+ * If you ever pass a dynamic value as a hint, scrub it at the call site.
  *
  * Covered by evals/security.spec.ts. Do not remove.
  */

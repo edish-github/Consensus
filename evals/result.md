@@ -38,3 +38,10 @@ gating, and scopes approval to read_snippet by name. Re-tested: resolved.
 **Tools:** `explain_ranking` (1ms), `get_decision_state` (0ms)  
 **Agent output:** identified the leader as provisional on a 25%-scored, price-only record; distinguished "excluded" from "zeroed"; volunteered that no entered score has supporting evidence.  
 **Note:** the `gaps` array and `completeness` fields did the work here. The agent reasoned about the shape of the evidence, not just the numbers.
+
+## B2 — disclosure gate invariants
+
+### Gate State Machine & Error Envelope
+- **Invariants:** 12/12 passing in `evals/gate.spec.ts` (0ms).
+- **Finding:** `envelope.err()` was truncating developer-authored hints over 80 chars, cutting off `"Do not guess the contents."` from `HINTS.WAIT_FOR_USER`.
+- **Fix:** `message` is scrubbed to prevent document text leakage; `hint` is untouched because developer constants contain zero user data.
