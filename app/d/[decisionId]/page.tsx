@@ -10,6 +10,7 @@ import { EvidenceVault } from '@/components/evidence/EvidenceVault';
 import { DisclosureQueue } from '@/components/gate/DisclosureQueue';
 import { DisclosureLedger } from '@/components/gate/DisclosureLedger';
 import { SealIndicator } from '@/components/gate/SealIndicator';
+import { EgressCounter } from '@/components/security/EgressCounter';
 import { ProposalQueue } from '@/components/proposals/ProposalQueue';
 import { ExportBrief } from '@/components/export/ExportBrief';
 import { useConsensusStore } from '@/lib/store';
@@ -67,6 +68,7 @@ export default function WorkspacePage() {
             <EvidenceVault />
             <SealIndicator onClick={() => setLedgerOpen((v) => !v)} />
             {ledgerOpen && <DisclosureLedger />}
+            <EgressCounter />
             <ExportBrief />
             <CapabilityCard capabilities={capabilities} />
           </div>
