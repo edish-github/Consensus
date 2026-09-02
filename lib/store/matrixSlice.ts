@@ -171,6 +171,8 @@ export const createMatrixSlice: StateCreator<
           source: 'human', evidenceRefs: [], updatedAt: now },
         'o_b:c_price': { optionId: 'o_b', criterionId: 'c_price', value: 3,
           source: 'human', evidenceRefs: [], updatedAt: now },
+        'o_b:c_soc2': { optionId: 'o_b', criterionId: 'c_soc2', value: 5,
+          source: 'human', evidenceRefs: [], updatedAt: now },
         'o_c:c_price': { optionId: 'o_c', criterionId: 'c_price', value: 5,
           source: 'human', evidenceRefs: [], updatedAt: now },
       };
