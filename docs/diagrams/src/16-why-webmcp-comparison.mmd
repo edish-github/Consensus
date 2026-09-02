@@ -1,54 +1,46 @@
 ---
-title: Why WebMCP — the same feature attempted four other ways
+title: Why WebMCP — Architectural Comparison
 ---
 flowchart TB
 
-  GOAL["THE REQUIREMENT<br/>An agent that can tell you WHERE the answer is<br/>in a document it is not permitted to read"]
+  GOAL["THE CORE REQUIREMENT<br/>An agent that can tell you WHERE the answer is in a document it is not permitted to read"]
 
-  GOAL --> T1
-  GOAL --> T2
-  GOAL --> T3
-  GOAL --> T4
-  GOAL --> T5
+  GOAL --> TRAD["Why Alternatives Fail to Enforce the Boundary"]
+  GOAL --> T5["★ Browser-Native WebMCP (Consensus)"]
 
-  subgraph T1["Server-side MCP"]
-    A1["To search the documents,<br/>the server must hold them."]
-    A2["Uploading is the exact action<br/>the user is forbidden to take."]
-    A3["<b>The primitive is definitionally<br/>unavailable. The server that holds<br/>the text has already read it.</b>"]
-    A1 --> A2 --> A3
+  subgraph TRAD["Why Alternatives Fail to Enforce the Boundary"]
+    direction TB
+    
+    subgraph T1["1. Server-Side MCP"]
+      A["To search files, the server must hold them.<br/>Uploading violates confidentiality.<br/><b>The server has already read what it pretends not to know.</b>"]
+    end
+
+    subgraph T2["2. REST API Backend"]
+      B["No shared visual surface.<br/>Human cannot watch or approve in flow.<br/><b>Per-page approval requires looking at the same live page.</b>"]
+    end
+
+    subgraph T3["3. Computer-Use / Playwright"]
+      C["Cannot join user's active session.<br/>Must screenshot screen to read text.<br/><b>Plaintext leaks through screenshots into the LLM.</b>"]
+    end
+
+    subgraph T4["4. Extension / OS Agent"]
+      D["Reads entire tab DOM or filesystem.<br/><b>No structured contract to allow metadata while sealing text.</b>"]
+    end
   end
 
-  subgraph T2["REST API"]
-    B1["No shared visual surface."]
-    B2["The human cannot watch,<br/>interrupt, or approve in flow."]
-    B3["<b>Per-page approval requires both<br/>parties looking at the same live page<br/>at the same moment.</b>"]
-    B1 --> B2 --> B3
-  end
-
-  subgraph T3["Playwright / computer-use"]
-    C1["Can drive a fresh session.<br/>Cannot JOIN the one the user is in."]
-    C2["Must read the screen to know<br/>what a document says."]
-    C3["<b>Confidential text passes through<br/>screenshots into the model.<br/>It defeats the boundary.</b>"]
-    C1 --> C2 --> C3
-  end
-
-  subgraph T4["OS or extension agent"]
-    D1["Reads the whole page<br/>or the whole filesystem."]
-    D2["No structured contract for<br/>'you may know this exists and<br/>may not know what it says'."]
-    D1 --> D2
-  end
-
-  subgraph T5["WebMCP"]
-    E1["execute runs INSIDE the process<br/>that already holds the plaintext."]
-    E2["Per-call contract with a JSON Schema<br/>and an annotation model."]
-    E3["<b>Search and disclosure become two<br/>separate capabilities. This is the<br/>only place that split can exist.</b>"]
+  subgraph T5["★ Browser-Native WebMCP"]
+    E1["execute() runs INSIDE the user's tab holding the plaintext."]
+    E2["Local BM25 index returns 0 text; Selective Gate releases snippets."]
+    E3["<b>Search and disclosure are separate capabilities. Real human-in-the-loop control.</b>"]
     E1 --> E2 --> E3
   end
 
   classDef fail fill:#ffe0e0,stroke:#c04040,color:#000
   classDef win fill:#e0f5e6,stroke:#40a060,stroke-width:2px,color:#000
   classDef goal fill:#ece0ff,stroke:#8050c0,stroke-width:2px,color:#000
+  classDef container fill:#fbfbfd,stroke:#cccccc,color:#000
 
-  class A1,A2,A3,B1,B2,B3,C1,C2,C3,D1,D2 fail
+  class A,B,C,D fail
   class E1,E2,E3 win
   class GOAL goal
+  class TRAD container
