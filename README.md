@@ -9,10 +9,6 @@ a single page without your explicit release.
 
 > **To verify it :** Open the app, open DevTools → Network, drop one of your own confidential PDFs in, and watch the request count stay at zero.
 
-**[▶ Live demo](https://consensus-henna.vercel.app/d/demo)** ·
-**[▶ 3-minute video](VIDEO_URL)** ·
-**MIT licensed** · Built for the [WebMCP Challenge](https://webmcp.devpost.com)
-
 ---
 
 ## The problem
